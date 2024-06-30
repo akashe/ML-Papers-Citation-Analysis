@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Citation Network</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.21.1/cytoscape.min.js"></script>
+    <style>
+        #cy {
+            width: 100%;
+            height: 800px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <select id="root-select">
+        {% for root in root_nodes %}
+        <option value="{{ root }}">{{ root }}</option>
+        {% endfor %}
+    </select>
+    <div id="cy"></div>
+
+    <script>
+        const cy = cytoscape({
+            container: document.getElementById('cy'),
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'label': 'data(label)',
+                        'background-color': 'data(fillcolor)',
+                        'shape': 'ellipse',
+                        'width': 20,
+                        'height': 20,
+                        'text-valign': 'bottom',
+                        'text-halign': 'center',
+                        'text-wrap': 'wrap',
+                        'text-max-width': 100,
+                        'padding-bottom': '20px'
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 3,
+                        'line-color': '#ccc',
+                        'target-arrow-color': '#ccc',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier',
+                        'control-point-step-size': 40
+                    }
+                }
+            ],
+            layout: {
+                name: 'breadthfirst',
+                directed: true,
+                padding: 10
+            }
+        });
+
+        function loadRoot(rootNode) {
+            fetch('/get_root_info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ root_node: rootNode })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const root = {
+                    data: {
+                        id: data.id,
+                        label: data.label || data.id,
+                        fillcolor: data.fillcolor || '#cccccc'
+                    }
+                };
+                cy.add(root);
+                loadChildren(rootNode);
+            });
+        }
+
+        function loadChildren(paperId) {
+            fetch('/get_children', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ paper_id: paperId, root_node: document.getElementById('root-select').value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(child => {
+                    const childNode = {
+                        data: {
+                            id: child.id,
+                            label: child.label || child.id,
+                            fillcolor: child.fillcolor || '#cccccc'
+                        }
+                    };
+                    if (!cy.getElementById(child.id).length) {
+                        cy.add(childNode);
+                    }
+                    const edge = {
+                        data: { source: paperId, target: child.id }
+                    };
+                    if (!cy.edges(`[source="${paperId}"][target="${child.id}"]`).length) {
+                        cy.add(edge);
+                    }
+                });
+                cy.layout({ name: 'breadthfirst' }).run();
+            });
+        }
+
+        function collapseChildren(nodeId) {
+            const nodesToRemove = [];
+            const edgesToRemove = [];
+
+            function recursiveCollapse(nodeId) {
+                const childrenEdges = cy.edges(`[source="${nodeId}"]`);
+                childrenEdges.forEach(edge => {
+                    const targetNode = edge.target();
+                    recursiveCollapse(targetNode.id());
+                    edgesToRemove.push(edge);
+                    nodesToRemove.push(targetNode);
+                });
+            }
+
+            recursiveCollapse(nodeId);
+
+            cy.batch(() => {
+                edgesToRemove.forEach(edge => edge.remove());
+                nodesToRemove.forEach(node => node.remove());
+            });
+        }
+
+        document.getElementById('root-select').addEventListener('change', function() {
+            const rootNode = this.value;
+            cy.elements().remove();
+            loadRoot(rootNode);
+        });
+
+        // Event listener for node clicks
+        cy.on('tap', 'node', function(evt) {
+            const node = evt.target;
+            if (node.hasClass('expanded')) {
+                collapseChildren(node.id());
+                node.removeClass('expanded');
+            } else {
+                loadChildren(node.id());
+                node.addClass('expanded');
+            }
+        });
+
+        // Load initial root node
+        loadRoot(document.getElementById('root-select').value);
+    </script>
+</body>
+</html>
