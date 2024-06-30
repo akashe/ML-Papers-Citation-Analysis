@@ -1,6 +1,7 @@
 venv/
 data/
 tmp/
+bin/
 data/tmp_pdf/
 lightning_logs/
 trained_model/*
