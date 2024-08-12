@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <queue>
 
 struct Node {
     std::string label;
@@ -69,56 +68,80 @@ void parseDotFile(const std::string& filename, std::unordered_map<int, Node>& no
     }
 }
 
-bool findPath(int start, int end, const std::unordered_map<int, Node>& nodes, std::vector<int>& path) {
-    std::unordered_map<int, int> parents;
-    std::queue<int> q;
-    q.push(start);
-    parents[start] = -1;
+bool dfs(int start, int end, const std::unordered_map<int, Node>& nodes,
+         std::vector<int>& currentPath, std::vector<std::vector<int>>& allPaths,
+         std::unordered_set<int>& visited, int depth, int maxDepth) {
+    if (depth > maxDepth) return false;
 
-    while (!q.empty()) {
-        int current = q.front();
-        q.pop();
+    visited.insert(start);
+    currentPath.push_back(start);
 
-        if (current == end) {
-            int step = end;
-            while (step != -1) {
-                path.insert(path.begin(), step);
-                step = parents[step];
-            }
-            return true;
-        }
+    if (start == end) {
+        allPaths.push_back(currentPath);
+        currentPath.pop_back();
+        visited.erase(start);
+        return true;
+    }
 
-        for (int neighbor : nodes.at(current).outEdges) {
-            if (parents.find(neighbor) == parents.end()) {
-                parents[neighbor] = current;
-                q.push(neighbor);
-            }
+    bool found = false;
+    for (int neighbor : nodes.at(start).outEdges) {
+        if (visited.find(neighbor) == visited.end()) {
+            found = dfs(neighbor, end, nodes, currentPath, allPaths, visited, depth + 1, maxDepth) || found;
         }
     }
 
+    currentPath.pop_back();
+    visited.erase(start);
+    return found;
+}
+
+bool iddfs(int start, int end, const std::unordered_map<int, Node>& nodes,
+           std::vector<std::vector<int>>& allPaths, int maxDepth) {
+    std::unordered_set<int> visited;
+    std::vector<int> currentPath;
+
+    for (int depth = 1; depth <= maxDepth; ++depth) {
+        if (dfs(start, end, nodes, currentPath, allPaths, visited, 0, depth)) {
+            return true;
+        }
+    }
     return false;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc != 5) {
+        std::cerr << "Usage: " << argv[0] << " <start_node_id> <end_node_id> <max_depth> <dot file name>" << std::endl;
+        return 1;
+    }
+
+    int start = std::stoi(argv[1]);
+    int end = std::stoi(argv[2]);
+    int maxDepth = std::stoi(argv[3]);
+    std::string dot_filename = argv[4];
+
     std::unordered_map<int, Node> nodes;
-    parseDotFile("data/graph_with_non_zero_pagerank.dot", nodes);
+    parseDotFile(dot_filename, nodes);
 
-    int start, end;
-    std::cout << "Enter the starting node id: ";
-    std::cin >> start;
-    std::cout << "Enter the ending node id: ";
-    std::cin >> end;
+    // Ensure the path starts from the older paper
+    if (nodes[start].year > nodes[end].year) {
+        std::swap(start, end);
+    }
 
-    std::vector<int> path;
-    if (findPath(start, end, nodes, path)) {
-        std::cout << "Path found:\n";
-        for (int node : path) {
-            std::cout << node << " (" << nodes[node].label << ") ";
-            if (node != end) std::cout << " -> " << std::endl;
+    std::vector<std::vector<int>> allPaths;
+
+    if (iddfs(start, end, nodes, allPaths, maxDepth)) {
+        for (const auto& path : allPaths) {
+            for (size_t i = 0; i < path.size(); ++i) {
+                std::cout << path[i];
+                if (i < path.size() - 1) {
+                    std::cout << " ";
+                }
+            }
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
     } else {
-        std::cout << "No path found between the nodes.\n";
+        std::cout << "No path found between the nodes." << std::endl;
+        return 1;
     }
 
     return 0;

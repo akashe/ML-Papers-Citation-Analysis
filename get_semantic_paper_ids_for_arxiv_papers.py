@@ -14,7 +14,7 @@ SEMANTIC_SCHOLAR_API_KEY = "XQRDiSXgS59uq91YOLadF2You3c4XFvv3MmXKU4o"
 SEMANTIC_SCHOLAR_API_URL = "https://api.semanticscholar.org/graph/v1"
 
 # Define the fields to be retrieved
-fields = "url,year,citationCount"
+fields = "url,year,citationCount,tldr"
 
 
 def save_citations_to_jsonl(citations, filename="citations.jsonl"):
@@ -57,7 +57,7 @@ def fetch_paper_ids(request_ids, max_retries=3):
             print(f"Error fetching papers (attempt {attempt + 1}): {response}")
             time.sleep(40)  # Wait before retrying
 
-    time.sleep(70)  # Wait 60 seconds between requests
+    time.sleep(60)  # Wait 60 seconds between requests
 
     return failed_response
 
@@ -81,11 +81,12 @@ def main():
 
         for df_details, result in zip(df_keys[i:i + iterator], semantic_scholar_results):
             try:
+                result = {i: result['tldr']['text'] if i=='tldr' else result[i] for i in result.keys()}
                 paper_results.append({'id': df_details, **result})
             except Exception as e:
                 failed_paper_ids.append(df_details)
 
-    headers = ['id', 'citationCount', 'year', 'paperId', 'url']
+    headers = ['id', 'citationCount', 'year', 'paperId', 'url', 'tldr']
     results_df = pd.DataFrame(paper_results, columns=headers)
 
     merged_df = pd.merge(results_df, df, on='id', how='inner')
