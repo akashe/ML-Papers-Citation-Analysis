@@ -31,7 +31,7 @@ def filter_data(data, relevant_categories, years):
             if any(category in relevant_categories for category in entry['categories'].split()):
                 filtered_data.append({
                     "id": entry["id"],
-                    "title": entry["title"],
+                    "title": entry["title"].replace("\n", "").replace("\r", "").replace('"', ''),
                     "published_date": entry["update_date"],  # use update_date as published_date
                     "abstract": entry["abstract"].replace("\n", "").replace("\r", "")
                 })

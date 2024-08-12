@@ -4,21 +4,79 @@
     <meta charset="UTF-8">
     <title>Citation Network</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.21.1/cytoscape.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
     <style>
         #cy {
             width: 100%;
             height: 800px;
             display: block;
         }
+
+        #loading-spinner {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tooltip {
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+        }
+
+        .tooltip h4 {
+            margin: 0 0 5px;
+            font-size: 16px;
+        }
+
+        .tooltip p {
+            margin: 0;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <select id="root-select">
-        {% for root in root_nodes %}
-        <option value="{{ root }}">{{ root }}</option>
-        {% endfor %}
+    <input type="text" id="search-input" placeholder="Search for a paper">
+    <button id="search-button">Search</button>
+    <select id="paper-select"></select>
+    <input type="number" id="depth-input" placeholder="Select depth" min="2" max="20">
+    <select id="num-papers-select">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="40">40</option>
+        <option value="60">60</option>
+        <option value="100">100</option>
     </select>
+    <select id="selection-criteria-select">
+        <option value="citationCount">Citation Count</option>
+        <option value="pageRank">PageRank</option>
+        <option value="random">Random</option>
+    </select>
+    <button id="generate-tree-button">Generate Tree</button>
     <div id="cy"></div>
+    <div id="loading-spinner" class="spinner"></div>
+    <div id="tooltip" class="tooltip"></div>
 
     <script>
         const cy = cytoscape({
@@ -58,58 +116,112 @@
             }
         });
 
-        function loadRoot(rootNode) {
-            fetch('/get_root_info', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ root_node: rootNode })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const root = {
-                    data: {
-                        id: data.id,
-                        label: data.label || data.id,
-                        fillcolor: data.fillcolor || '#cccccc'
-                    }
-                };
-                cy.add(root);
-                loadChildren(rootNode);
-            });
-        }
+        const tooltip = document.getElementById('tooltip');
 
-        function loadChildren(paperId) {
-            fetch('/get_children', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ paper_id: paperId, root_node: document.getElementById('root-select').value })
+        document.getElementById('search-button').addEventListener('click', function() {
+            const query = document.getElementById('search-input').value;
+            axios.post('/search_papers/', { query })
+                .then(response => {
+                    const paperSelect = document.getElementById('paper-select');
+                    paperSelect.innerHTML = '';
+                    response.data.forEach(paper => {
+                        const option = document.createElement('option');
+                        option.value = paper.id;
+                        option.textContent = paper.label;
+                        paperSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error searching papers:', error);
+                });
+        });
+
+        document.getElementById('generate-tree-button').addEventListener('click', function() {
+            const paperId = document.getElementById('paper-select').value;
+            const depth = document.getElementById('depth-input').value;
+            const numPapers = document.getElementById('num-papers-select').value;
+            const selectionCriteria = document.getElementById('selection-criteria-select').value;
+
+            // Clear the existing graph
+            cy.elements().remove();
+
+            // Show the loading spinner
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            axios.post('/generate_tree/', {
+                paper_id: parseInt(paperId),
+                depth: parseInt(depth)
             })
-            .then(response => response.json())
-            .then(data => {
-                data.forEach(child => {
-                    const childNode = {
+                .then(response => {
+                    if (response.data.message === 'Tree already exists') {
+                        loadRoot(paperId, depth, numPapers, selectionCriteria);
+                    } else {
+                        setTimeout(() => loadRoot(paperId, depth, numPapers, selectionCriteria), 5000); // Adjust delay as needed
+                    }
+                })
+                .catch(error => {
+                    console.error('Error generating tree:', error);
+                    // Hide the loading spinner in case of error
+                    document.getElementById('loading-spinner').style.display = 'none';
+                });
+        });
+
+        function loadRoot(rootNode, depth, numPapers, selectionCriteria) {
+            axios.post('/get_root_info/', { paper_id: parseInt(rootNode), depth: parseInt(depth) })
+                .then(response => {
+                    const root = {
                         data: {
-                            id: child.id,
-                            label: child.label || child.id,
-                            fillcolor: child.fillcolor || '#cccccc'
+                            id: response.data.id,
+                            label: response.data.label || response.data.id,
+                            fillcolor: response.data.fillcolor || '#cccccc'
                         }
                     };
-                    if (!cy.getElementById(child.id).length) {
-                        cy.add(childNode);
-                    }
-                    const edge = {
-                        data: { source: paperId, target: child.id }
-                    };
-                    if (!cy.edges(`[source="${paperId}"][target="${child.id}"]`).length) {
-                        cy.add(edge);
-                    }
+                    cy.add(root);
+                    loadChildren(rootNode, depth, rootNode, numPapers, selectionCriteria);
+                })
+                .catch(error => {
+                    console.error('Error loading root info:', error);
+                    // Hide the loading spinner in case of error
+                    document.getElementById('loading-spinner').style.display = 'none';
                 });
-                cy.layout({ name: 'breadthfirst' }).run();
-            });
+        }
+
+        function loadChildren(paperId, depth, rootId, numPapers, selectionCriteria) {
+            axios.post('/get_children/', {
+                paper_id: parseInt(paperId),
+                depth: parseInt(depth),
+                root_id: parseInt(rootId),
+                num_papers: parseInt(numPapers),
+                selection_criteria: selectionCriteria
+            })
+                .then(response => {
+                    response.data.forEach(child => {
+                        const childNode = {
+                            data: {
+                                id: child.id,
+                                label: child.label || child.id,
+                                fillcolor: child.fillcolor || '#cccccc'
+                            }
+                        };
+                        if (!cy.getElementById(child.id).length) {
+                            cy.add(childNode);
+                        }
+                        const edge = {
+                            data: { source: paperId, target: child.id }
+                        };
+                        if (!cy.edges(`[source="${paperId}"][target="${child.id}"]`).length) {
+                            cy.add(edge);
+                        }
+                    });
+                    cy.layout({ name: 'breadthfirst' }).run();
+                    // Hide the loading spinner after the tree is loaded
+                    document.getElementById('loading-spinner').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error loading children:', error);
+                    // Hide the loading spinner in case of error
+                    document.getElementById('loading-spinner').style.display = 'none';
+                });
         }
 
         function collapseChildren(nodeId) {
@@ -134,26 +246,46 @@
             });
         }
 
-        document.getElementById('root-select').addEventListener('change', function() {
-            const rootNode = this.value;
-            cy.elements().remove();
-            loadRoot(rootNode);
-        });
-
-        // Event listener for node clicks
         cy.on('tap', 'node', function(evt) {
             const node = evt.target;
+            const depth = document.getElementById('depth-input').value;
+            const rootNode = document.getElementById('paper-select').value;
+            const numPapers = document.getElementById('num-papers-select').value;
+            const selectionCriteria = document.getElementById('selection-criteria-select').value;
             if (node.hasClass('expanded')) {
                 collapseChildren(node.id());
                 node.removeClass('expanded');
             } else {
-                loadChildren(node.id());
+                loadChildren(node.id(), depth, rootNode, numPapers, selectionCriteria);
                 node.addClass('expanded');
             }
         });
 
-        // Load initial root node
-        loadRoot(document.getElementById('root-select').value);
+        cy.on('mouseover', 'node', function(evt) {
+            const node = evt.target;
+            axios.post('/get_paper_info/', { paper_id: parseInt(node.id()) })
+                .then(response => {
+                    const info = response.data;
+                    tooltip.innerHTML = `<h4>${info.title}</h4>
+                                         <p><strong>Published Date:</strong> ${info.published_date}</p>
+                                         <p><strong>Citation Count:</strong> ${info.citationCount}</p>
+                                         <p><strong>TLDR:</strong> ${info.tldr}</p>`;
+                    tooltip.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching paper info:', error);
+                });
+        });
+
+        cy.on('mouseout', 'node', function(evt) {
+            tooltip.style.display = 'none';
+        });
+
+        cy.on('mousemove', function(evt) {
+            const pos = evt.renderedPosition || evt.position;
+            tooltip.style.left = `${pos.x + 15}px`;
+            tooltip.style.top = `${pos.y + 15}px`;
+        });
     </script>
 </body>
 </html>

@@ -20,6 +20,7 @@ using namespace std;
 // Define custom property tags for vertex properties
 struct VertexProperties {
     string name;
+    string url;
     int centrality;
     int year;
 };
@@ -31,6 +32,7 @@ typedef graph_traits<Graph>::vertex_descriptor Vertex;
 // Struct to store paper information
 struct PaperInfo {
     string title;
+    string url;
     int year;
     int citationCount;
 };
@@ -44,6 +46,15 @@ int csv_lines_processed = 0;
 int csv_lines_skipped = 0;
 int json_lines_processed = 0;
 int json_lines_skipped = 0;
+
+std::string ReplaceAll(std::string str, const std::string& from, const std::string& to) {
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+    }
+    return str;
+}
 
 vector<string> split_csv_line(const string& line) {
     vector<string> result;
@@ -104,20 +115,23 @@ void load_paper_info(const string& csv_filename) {
 
         string paperId = fields[0];
         string url = fields[1];
-        string title = escape_dot_string(fields[2]);
+        string title_old = escape_dot_string(fields[2]);
+        // TODO: replacing "" in paper names with nothing because some paper are being missed this way
+        string title = ReplaceAll(title_old, std::string("\"\""), std::string(" "));
         string year = fields[3];
         string citationCount = fields[4];
 
         try {
             int yearInt = stoi(year);
             int citationCountInt = stoi(citationCount);
-            PaperInfo info = {title, yearInt, citationCountInt};
+            PaperInfo info = {title, url, yearInt, citationCountInt};
             paper_info_map[paperId] = info;
 
             // Add node to graph
             Vertex v = add_vertex(g);
             node_map[paperId] = v;
             g[v].name = title;
+            g[v].url = url;
             g[v].centrality = citationCountInt;
             g[v].year = yearInt;
             csv_lines_processed++;
@@ -175,12 +189,15 @@ void parse_jsonl_file(const string& filename) {
         string citing_paper_title = citingPaperTitleItr->value.IsString() ? escape_dot_string(citingPaperTitleItr->value.GetString()) : "unknown";
         int citing_paper_year = citingPaperYearItr->value.IsInt() ? citingPaperYearItr->value.GetInt() : 0;
 
+        string url_start = "https://www.semanticscholar.org/paper/";
+
         lock_guard<mutex> lock(mtx);
         if (node_map.find(cited_paper_id) == node_map.end()) {
             // If the cited paper is not in the initial set, add it as an isolated node
             Vertex v = add_vertex(g);
             node_map[cited_paper_id] = v;
             g[v].name = cited_paper_id; // Just adding the paper id as a node name
+            g[v].url = url_start + cited_paper_id;
             g[v].centrality = 0;
             g[v].year = 0;
         }
@@ -189,11 +206,13 @@ void parse_jsonl_file(const string& filename) {
             Vertex v = add_vertex(g);
             node_map[citing_paper_id] = v;
             g[v].name = citing_paper_title;
+            g[v].url = url_start + citing_paper_id;
             g[v].centrality = 0;
             g[v].year = citing_paper_year;
         }
 
-        add_edge(node_map[citing_paper_id], node_map[cited_paper_id], g);
+//        add_edge(node_map[citing_paper_id], node_map[cited_paper_id], g);
+        add_edge(node_map[cited_paper_id], node_map[citing_paper_id], g);
 
         if (json_lines_processed % 100000 == 0) {
             cout << "Json lines processed: " << json_lines_processed << endl;
@@ -214,7 +233,8 @@ public:
     void operator()(ostream& out, const VertexOrEdge& v) const {
         out << "[label=\"" << g[v].name << "\"";
         out << ", year=\"" << g[v].year << "\"";
-        out << ", citationCount=\"" << g[v].centrality << "\"]";
+        out << ", citationCount=\"" << g[v].centrality << "\"";
+        out << ", url=\"" << g[v].url << "\"]";
     }
 
 private:

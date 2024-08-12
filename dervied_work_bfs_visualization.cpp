@@ -30,6 +30,18 @@ void parseDotFile(const std::string& filename, std::unordered_map<int, Node>& no
                 char ignore;
                 ss >> from >> ignore >> ignore >> to;
 
+                // Ensure both nodes are defined before adding the edge
+                if (nodes.find(from) == nodes.end()) {
+                    std::cerr << "Node " << from << " not found when processing edges." << std::endl;
+                    Node dummyNode;
+                    nodes[from] = dummyNode;
+                }
+                if (nodes.find(to) == nodes.end()) {
+                    std::cerr << "Node " << to << " not found when processing edges." << std::endl;
+                    Node dummyNode;
+                    nodes[to] = dummyNode;
+                }
+
                 nodes[from].outEdges.push_back(to);
             } else if (line.find("[label=") != std::string::npos) {
                 std::stringstream ss;
@@ -163,22 +175,28 @@ void bfsTree(int start, const std::unordered_map<int, Node>& nodes, int maxLevel
     out << "}" << std::endl;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+
+    if (argc != 4) {
+        std::cerr << "Usage: " << argv[0] << " <paper_id> <depth> <dot file name>" << std::endl;
+        return 1;
+    }
+
+    int start = std::stoi(argv[1]);
+    int maxLevels = std::stoi(argv[2]);
+    std::string dot_filename = argv[3];
+
     std::unordered_map<int, Node> nodes;
-    parseDotFile("data/graph_with_non_zero_pagerank.dot", nodes);
+    parseDotFile(dot_filename, nodes);
 
-    int start;
-    int maxLevels;
-    std::cout << "Enter the starting node id: ";
-    std::cin >> start;
-    std::cout << "Enter the number of levels to visualize (-1 for all levels): ";
-    std::cin >> maxLevels;
+    // Create the filename using string concatenation
+    std::string filename = "data/bfs_trees/bfs_tree_" + std::to_string(start) + "_" + std::to_string(maxLevels) + ".dot";
 
-    std::ofstream outfile("bfs_tree.dot");
+    std::ofstream outfile(filename);
     bfsTree(start, nodes, maxLevels, outfile);
     outfile.close();
 
-    std::cout << "BFS tree DOT file has been generated: bfs_tree.dot" << std::endl;
+    std::cout << "BFS tree DOT file has been generated: " << filename << std::endl;
 
     return 0;
 }

@@ -106,13 +106,13 @@ void bfsTreeToCSV(int start, const std::unordered_map<int, Node>& nodes, std::os
 
 int main() {
     std::unordered_map<int, Node> nodes;
-    parseDotFile("data/graph_with_non_zero_pagerank.dot", nodes);
+    parseDotFile("data/output.dot", nodes);
 
     int start;
     std::cout << "Enter the starting node id: ";
     std::cin >> start;
 
-    std::ofstream outfile("bfs_tree.csv");
+    std::ofstream outfile("data/bfs_tree.csv");
     bfsTreeToCSV(start, nodes, outfile);
     outfile.close();
 

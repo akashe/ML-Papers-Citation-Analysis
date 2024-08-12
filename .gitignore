@@ -17,3 +17,7 @@ __pycache__/
 .env
 *.csv
 *.dot
+citation_network
+find_path
+graph_bfs
+pagerank
