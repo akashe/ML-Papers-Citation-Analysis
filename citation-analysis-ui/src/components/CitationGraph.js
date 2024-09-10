@@ -11,51 +11,22 @@ const CitationGraph = ({ elements, rootId, depth, numPapers, selectionCriteria }
     if (cyInstance && elements.length > 0) {
       cyInstance.elements().remove();
       cyInstance.add(elements);
-
-      cyInstance.on('tap', 'node', function(evt) {
-        const node = evt.target;
-        if (node.hasClass('expanded')) {
-          collapseChildren(node);
-        } else {
-          expandChildren(node);
-        }
-      });
-
-      cyInstance.on('mouseover', 'node', function(evt) {
-        const node = evt.target;
-        showTooltip(node);
-      });
-
-      cyInstance.on('mouseout', 'node', function() {
-        hideTooltip();
-      });
-
-      cyInstance.on('mousemove', function(evt) {
-        const pos = evt.renderedPosition || evt.position;
-        setTooltip(prev => ({
-          ...prev,
-          x: pos.x + 15,
-          y: pos.y + 15
-        }));
-      });
-
-      // Center and fit the graph
+      cyInstance.layout(getLayoutOptions()).run();
       cyInstance.fit();
       cyInstance.center();
-
-      // Apply layout
-      cyInstance.layout({
-        name: 'breadthfirst',
-        directed: true,
-        padding: 50,
-        spacingFactor: 1.5,
-        animate: true,
-        animationDuration: 1000,
-        fit: true,
-        maximal: true
-      }).run();
     }
   }, [cyInstance, elements]);
+
+  const getLayoutOptions = () => ({
+    name: 'breadthfirst',
+    directed: true,
+    padding: 50,
+    spacingFactor: 1.5,
+    animate: true,
+    animationDuration: 1000,
+    fit: true,
+    roots: `#${rootId}`
+  });
 
   const collapseChildren = (node) => {
     const nodesToRemove = [];
@@ -79,6 +50,7 @@ const CitationGraph = ({ elements, rootId, depth, numPapers, selectionCriteria }
     });
 
     node.removeClass('expanded');
+    cyInstance.layout(getLayoutOptions()).run();
   };
 
   const expandChildren = async (node) => {
@@ -99,18 +71,7 @@ const CitationGraph = ({ elements, rootId, depth, numPapers, selectionCriteria }
     });
 
     node.addClass('expanded');
-
-    // Re-run layout
-    cyInstance.layout({
-      name: 'breadthfirst',
-      directed: true,
-      padding: 50,
-      spacingFactor: 1.5,
-      animate: true,
-      animationDuration: 1000,
-      fit: true,
-      maximal: true
-    }).run();
+    cyInstance.layout(getLayoutOptions()).run();
   };
 
   const showTooltip = async (node) => {
@@ -133,23 +94,28 @@ const CitationGraph = ({ elements, rootId, depth, numPapers, selectionCriteria }
   };
 
   return (
-    <div style={{ position: 'relative', height: '80vh', border: '1px solid #ccc' }}>
+    <div style={{ position: 'relative', width: '100%', height: 'calc(100vh - 200px)', border: '1px solid #ddd' }}>
       <CytoscapeComponent
         elements={elements}
         style={{ width: '100%', height: '100%' }}
         cy={(cy) => {
           setCyInstance(cy);
           cyRef.current = cy;
+          cy.on('tap', 'node', function(evt) {
+            const node = evt.target;
+            if (node.hasClass('expanded')) {
+              collapseChildren(node);
+            } else {
+              expandChildren(node);
+            }
+          });
+          cy.on('mouseover', 'node', function(evt) {
+            const node = evt.target;
+            showTooltip(node);
+          });
+          cy.on('mouseout', 'node', hideTooltip);
         }}
-        layout={{
-          name: 'breadthfirst',
-          directed: true,
-          padding: 50,
-          spacingFactor: 1.5,
-          animate: false,
-          fit: true,
-          maximal: true
-        }}
+        layout={getLayoutOptions()}
         stylesheet={[
           {
             selector: 'node',
@@ -162,9 +128,9 @@ const CitationGraph = ({ elements, rootId, depth, numPapers, selectionCriteria }
               'text-valign': 'bottom',
               'text-halign': 'center',
               'text-wrap': 'wrap',
-              'text-max-width': 100,
-              'font-size': '8px',
-              'padding-bottom': '5px'
+              'text-max-width': 80,
+              'font-size': 10,
+              'padding-bottom': '10px'
             }
           },
           {
@@ -175,7 +141,7 @@ const CitationGraph = ({ elements, rootId, depth, numPapers, selectionCriteria }
               'target-arrow-color': '#ccc',
               'target-arrow-shape': 'triangle',
               'curve-style': 'bezier',
-              'arrow-scale': 0.5
+              'arrow-scale': 0.8
             }
           }
         ]}
@@ -190,7 +156,8 @@ const CitationGraph = ({ elements, rootId, depth, numPapers, selectionCriteria }
           border: '1px solid black',
           padding: '5px',
           zIndex: 1000,
-          maxWidth: '300px',
+          maxWidth: '200px',
+          fontSize: '12px',
           boxShadow: '0 0 10px rgba(0,0,0,0.1)'
         }}
         dangerouslySetInnerHTML={{ __html: tooltip.content }}

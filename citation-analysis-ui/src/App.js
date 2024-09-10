@@ -22,7 +22,6 @@ function App() {
     try {
       const response = await generateTree(paperId, selectedDepth);
       if (response.message === 'Tree already exists' || response.message === 'Tree generation started') {
-        // Wait for a short time to ensure the tree is generated
         setTimeout(async () => {
           const rootInfo = await getRootInfo(paperId, selectedDepth);
           const rootElement = {
@@ -63,12 +62,8 @@ function App() {
     <div className="App">
       <h1>Citation Analysis Tool</h1>
       <SearchPaper onPaperSelect={handlePaperSelect} />
-      {isLoading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner"></div>
-        </div>
-      )}
-      {selectedPaper && !isLoading && graphElements.length > 0&& (
+      {isLoading && <div className="spinner"></div>}
+      {selectedPaper && (
         <CitationGraph
           elements={graphElements}
           rootId={selectedPaper}

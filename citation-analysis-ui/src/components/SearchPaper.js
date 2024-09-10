@@ -19,7 +19,7 @@ const SearchPaper = ({ onPaperSelect }) => {
   };
 
   return (
-    <div>
+    <div style={{ marginBottom: '20px' }}>
       <input
         type="text"
         value={query}
