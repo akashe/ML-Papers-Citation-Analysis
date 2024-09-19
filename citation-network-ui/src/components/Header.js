@@ -25,16 +25,25 @@ function Header() {
             <Button color="inherit" component={Link} to="/reading-list">
               Reading List
             </Button>
+            <Button color="inherit" component={Link} to="/path-finder">
+              Path Between 2 Papers
+            </Button>
             <Button color="inherit" onClick={handleLogout}>
               Logout
             </Button>
           </>
         );
-      } else if (location.pathname === '/reading-list') {
+      } else if (location.pathname === '/reading-list' || location.pathname === '/path-finder') {
         return (
           <>
             <Button color="inherit" component={Link} to="/">
               Home
+            </Button>
+            <Button color="inherit" component={Link} to="/reading-list">
+              Reading List
+            </Button>
+            <Button color="inherit" component={Link} to="/path-finder">
+              Path Between 2 Papers
             </Button>
             <Button color="inherit" onClick={handleLogout}>
               Logout
