@@ -5,8 +5,8 @@ import {
 } from 'firebase/auth';
 import { setDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import { TextField, Button, Typography, Alert } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { TextField, Button, Alert, Box, Typography, Link as MuiLink } from '@mui/material';
+import { useNavigate, Link } from 'react-router-dom';
 
 function SignUp() {
   const [name, setName] = useState('');
@@ -33,9 +33,23 @@ function SignUp() {
   };
 
   return (
-    <form onSubmit={handleSignUp}>
-      <Typography variant="h4">Sign Up</Typography>
-      {error && <Alert severity="error">{error}</Alert>}
+    <Box
+      component="form"
+      onSubmit={handleSignUp}
+      sx={{
+        maxWidth: 400,
+        mx: 'auto',
+        mt: 8,
+        p: 3,
+        boxShadow: 3,
+        borderRadius: 2,
+        backgroundColor: '#fff',
+      }}
+    >
+      <Typography variant="h4" align="center" gutterBottom>
+        Sign Up
+      </Typography>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       <TextField
         label="Name"
         value={name}
@@ -62,10 +76,16 @@ function SignUp() {
         fullWidth
         margin="normal"
       />
-      <Button type="submit" variant="contained" color="primary">
+      <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
         Sign Up
       </Button>
-    </form>
+      <Typography variant="body2" align="center" sx={{ mt: 2 }}>
+        Already have an account?{' '}
+        <MuiLink component={Link} to="/login">
+          Login
+        </MuiLink>
+      </Typography>
+    </Box>
   );
 }
 
