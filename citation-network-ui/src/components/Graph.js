@@ -7,7 +7,11 @@ import {
   CardContent,
   Typography,
   Popover,
+  Button,
 } from '@mui/material';
+import { useAuth } from '../contexts/AuthContext';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const useStyles = makeStyles({
   graphContainer: {
@@ -16,18 +20,23 @@ const useStyles = makeStyles({
     marginTop: '20px',
   },
   tooltipCard: {
-    pointerEvents: 'none',
+    // pointerEvents: 'none',
     maxWidth: '300px',
+  },
+  addButton: {
+    marginTop: '10px',
   },
 });
 
 function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
   const classes = useStyles();
   const cyRef = useRef(null);
+  const { currentUser } = useAuth();
   const [tooltip, setTooltip] = React.useState({
     open: false,
     anchorEl: null,
     data: null,
+    added: false, // New property
   });
 
   useEffect(() => {
@@ -160,6 +169,7 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
                 top: nodePosition.y + evt.cy.container().getBoundingClientRect().top,
               },
               data: response.data,
+              nodeId: nodeId,
             });
           })
           .catch((error) => {
@@ -168,10 +178,28 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
       });
 
       cy.on('mouseout', 'node', () => {
-        setTooltip({ open: false, anchorEl: null, data: null });
+        setTooltip({ open: false, anchorEl: null, data: null, nodeId: null });
       });
     }
   }, [cyRef, depth, numPapers, selectionCriteria, rootNode]);
+
+  const handleAddToReadingList = async () => {
+    if (!currentUser) {
+      console.log('No current user');
+      return;
+    }
+    console.log('Add to Reading List clicked');
+    const userDoc = doc(db, 'users', currentUser.uid);
+    try {
+      await updateDoc(userDoc, {
+        readingList: arrayUnion(tooltip.nodeId),
+      });
+      console.log('Added to reading list');
+      setTooltip({ ...tooltip, open: false, added: true });
+    } catch (error) {
+      console.error('Error adding to reading list:', error);
+    }
+  };
 
   return (
     <>
@@ -218,7 +246,7 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
         open={tooltip.open}
         anchorReference="anchorPosition"
         anchorPosition={tooltip.anchorPosition}
-        onClose={() => setTooltip({ open: false, anchorEl: null, data: null })}
+        onClose={() => setTooltip({ open: false, anchorEl: null, data: null, nodeId: null, added: false })}
         anchorOrigin={{
           vertical: 'center',
           horizontal: 'left',
@@ -239,9 +267,35 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
               <Typography variant="body2">
                 <strong>Citation Count:</strong> {tooltip.data.citationCount}
               </Typography>
+              {tooltip.data.url && (
+                  <Typography
+                    variant="body2"
+                    className={classes.linkTypography}
+                  >
+                    <a
+                      href={tooltip.data.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={classes.link}
+                    >
+                      Paper URL
+                    </a>
+                  </Typography>
+                )}
               <Typography variant="body2">
                 <strong>TL;DR:</strong> {tooltip.data.tldr}
               </Typography>
+              {currentUser && currentUser.emailVerified && (
+                <Button 
+                  variant="contained"
+                  color="primary" 
+                  className={classes.addButton}
+                  onClick={handleAddToReadingList}
+                  disabled={tooltip.added} // Disable button if already added
+                  >
+                  {tooltip.added ? 'Added to Reading List' : 'Add to Reading List'}
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
