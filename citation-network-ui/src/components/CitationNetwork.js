@@ -8,8 +8,9 @@ import {
   FormControl,
   Grid,
   CircularProgress,
+  Box,
 } from '@mui/material';
-import axios from '../axiosInstance'; // Import the custom Axios instance
+import axios from '../axiosInstance';
 import Graph from './Graph';
 
 function CitationNetwork() {
@@ -71,7 +72,7 @@ function CitationNetwork() {
   };
 
   return (
-    <>
+    <Box>
       <Grid container spacing={2} alignItems="center">
         {/* Search and Paper Selection */}
         <Grid item xs={12} sm={6}>
@@ -168,7 +169,7 @@ function CitationNetwork() {
 
       {/* Loading Indicator */}
       {loading && (
-        <Grid container justifyContent="center" style={{ marginTop: 20 }}>
+        <Grid container justifyContent="center" sx={{ mt: 2 }}>
           <CircularProgress />
         </Grid>
       )}
@@ -182,7 +183,7 @@ function CitationNetwork() {
           selectionCriteria={selectionCriteria}
         />
       )}
-    </>
+    </Box>
   );
 }
 
