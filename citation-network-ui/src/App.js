@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Container, Typography, Box } from '@mui/material';
 import CitationNetwork from './components/CitationNetwork';
+import PathFinder from './components/PathFinder'; // Import the new PathFinder component
 import SignUp from './components/SignUp';
 import Login from './components/Login';
 import ReadingList from './components/ReadingList';
@@ -24,6 +25,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <ReadingList />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/path-finder" 
+                element={
+                  <PrivateRoute>
+                    <PathFinder />
                   </PrivateRoute>
                 } 
               />
