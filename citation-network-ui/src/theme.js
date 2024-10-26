@@ -1,19 +1,32 @@
+// theme.js
 import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
   palette: {
+    mode: 'light', // or 'dark' for dark mode
     primary: {
-      main: '#424242', // Changed to a darker gray for a more subdued look
+      main: '#1976d2', // Adjust primary color
     },
     secondary: {
-      main: '#ff5722', // Changed to a vibrant orange for contrast
+      main: '#ff4081', // Adjust secondary color
     },
     background: {
-      default: '#f5f5f5', // Light grey background
+      default: '#f4f6f8', // Light background
     },
   },
   typography: {
     fontFamily: 'Roboto, sans-serif',
+  },
+  components: {
+    // Customize component styles
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8, // Rounded corners
+          textTransform: 'none', // Disable uppercase transformation
+        },
+      },
+    },
   },
 });
 

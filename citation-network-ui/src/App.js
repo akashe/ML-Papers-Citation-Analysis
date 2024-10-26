@@ -1,6 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Container, Typography, Box } from '@mui/material';
+import { Box } from '@mui/material';
+import { ThemeProvider } from '@mui/material/styles';
+import theme from './theme';
+
 import CitationNetwork from './components/CitationNetwork';
 import PathFinder from './components/PathFinder'; // Import the new PathFinder component
 import SignUp from './components/SignUp';
@@ -12,11 +15,12 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 function App() {
   return (
+    <ThemeProvider theme={theme}>
     <AuthProvider>
       <Router>
         <Box display="flex" flexDirection="column" minHeight="100vh">
           <Header />
-          <Container component="main" sx={{ mt: 4, mb: 4, flexGrow: 1 }}>
+          <Box component="main" flexGrow={1} p={2}>
             <Routes>
               <Route path="/signup" element={<SignUp />} />
               <Route path="/login" element={<Login />} />
@@ -45,11 +49,12 @@ function App() {
                 } 
               />
             </Routes>
-          </Container>
+          </Box>
           <Footer />
         </Box>
       </Router>
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 

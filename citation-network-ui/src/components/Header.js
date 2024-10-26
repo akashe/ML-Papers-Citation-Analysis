@@ -1,6 +1,7 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, IconButton } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
+import MenuIcon from '@mui/icons-material/Menu';
 import { useAuth } from '../contexts/AuthContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
@@ -70,9 +71,14 @@ function Header() {
   };
 
   return (
-    <AppBar position="static" color="primary">
+    <AppBar position="static" elevation={0}>
       <Toolbar>
-        <Typography variant="h6" style={{ flexGrow: 1 }}>
+      <Typography
+          variant="h6"
+          component={Link}
+          to="/"
+          style={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}
+        >
           Citation Network Explorer
         </Typography>
         {renderAuthButtons()}

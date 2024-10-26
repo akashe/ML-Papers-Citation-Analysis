@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
-import { TextField, Button, Alert, Typography, Box, Link as MuiLink, Grid, Paper } from '@mui/material';
+import {
+  TextField,
+  Button,
+  Alert,
+  Typography,
+  Box,
+  Link as MuiLink,
+  Paper,
+} from '@mui/material';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 function Login() {
@@ -29,44 +37,16 @@ function Login() {
   };
 
   return (
-    <Grid container sx={{ minHeight: '100vh' }}>
-      <Grid item xs={12} md={6}>
-        <Paper
-          elevation={3}
-          sx={{
-            height: '100%',
-            p: 4,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#f5f5f5',
-          }}
-        >
-          <Box>
-            <Typography variant="h5" gutterBottom>
-              Welcome to Citation Network Explorer!
-            </Typography>
-            <Typography variant="body1">
-              Explore and manage your academic reading list with ease. Our platform allows you to track, organize, and discover new resources tailored to your research interests. Join our community to enhance your citation network and collaborate with peers.
-            </Typography>
-          </Box>
-        </Paper>
-      </Grid>
-      {/* Login Form Section */}
-      <Grid item xs={12} md={6}>
         <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          minHeight="100vh"
+          bgcolor="background.default"
           component="form"
           onSubmit={handleLogin}
-          sx={{
-            maxWidth: 400,
-            mx: 'auto',
-            mt: 8,
-            p: 3,
-            boxShadow: 3,
-            borderRadius: 2,
-            backgroundColor: '#fff',
-          }}
         >
+          <Paper elevation={3} sx={{ p: 4, maxWidth: 400 }}>
           <Typography variant="h4" align="center" gutterBottom>
             Login
           </Typography>
@@ -99,12 +79,8 @@ function Login() {
               Sign Up
             </MuiLink>
           </Typography>
+          </Paper>
         </Box>
-      </Grid>
-      
-      {/* Project Discussion Section */}
-      
-    </Grid>
   );
 }
 
