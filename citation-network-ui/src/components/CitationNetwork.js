@@ -9,6 +9,7 @@ import {
   Grid,
   CircularProgress,
   Box,
+  Paper
 } from '@mui/material';
 import axios from '../axiosInstance';
 import Graph from './Graph';
