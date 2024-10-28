@@ -72,7 +72,20 @@ function ReadingList() {
 
   return (
     <div>
-      <Typography variant="h5" gutterBottom>My Reading List</Typography>
+      <Typography 
+        variant="h4" 
+        gutterBottom 
+        sx={{
+          fontFamily: '"Inter Display", sans-serif',
+          fontSize: "30px",
+          fontWeight: "700",
+          letterSpacing: "-1px",
+          textAlign: "center",
+          color: "rgb(51, 51, 51)",
+          mb: 4
+        }}
+      >
+        My Reading List</Typography>
       {readingList.length === 0 ? (
         <Typography variant="body1">Your reading list is empty.</Typography>
       ) : (

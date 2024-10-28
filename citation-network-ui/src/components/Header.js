@@ -23,13 +23,13 @@ function Header() {
       if (location.pathname === '/') {
         return (
           <>
-            <Button color="inherit" component={Link} to="/reading-list">
+            <Button sx={{ color: '#333333' }} component={Link} to="/reading-list">
               Reading List
             </Button>
-            <Button color="inherit" component={Link} to="/path-finder">
+            <Button sx={{ color: '#333333' }} component={Link} to="/path-finder">
               Path Between 2 Papers
             </Button>
-            <Button color="inherit" onClick={handleLogout}>
+            <Button sx={{ color: '#333333' }} onClick={handleLogout}>
               Logout
             </Button>
           </>
@@ -37,16 +37,16 @@ function Header() {
       } else if (location.pathname === '/reading-list' || location.pathname === '/path-finder') {
         return (
           <>
-            <Button color="inherit" component={Link} to="/">
+            <Button sx={{ color: '#333333' }} component={Link} to="/">
               Home
             </Button>
-            <Button color="inherit" component={Link} to="/reading-list">
+            <Button sx={{ color: '#333333' }} component={Link} to="/reading-list">
               Reading List
             </Button>
-            <Button color="inherit" component={Link} to="/path-finder">
+            <Button sx={{ color: '#333333' }} component={Link} to="/path-finder">
               Path Between 2 Papers
             </Button>
-            <Button color="inherit" onClick={handleLogout}>
+            <Button sx={{ color: '#333333' }} onClick={handleLogout}>
               Logout
             </Button>
           </>
@@ -55,13 +55,13 @@ function Header() {
     } else {
       if (location.pathname === '/login') {
         return (
-          <Button color="inherit" component={Link} to="/signup">
+          <Button sx={{ color: '#333333' }} component={Link} to="/signup">
             Sign Up
           </Button>
         );
       } else if (location.pathname === '/signup') {
         return (
-          <Button color="inherit" component={Link} to="/login">
+          <Button sx={{ color: '#333333' }} component={Link} to="/login">
             Login
           </Button>
         );
@@ -71,13 +71,13 @@ function Header() {
   };
 
   return (
-    <AppBar position="static" elevation={0}>
+    <AppBar position="static" elevation={1} sx={{ padding: 0 }}>
       <Toolbar>
-      <Typography
+        <Typography
           variant="h6"
           component={Link}
           to="/"
-          style={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}
+          sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}
         >
           Citation Network Explorer
         </Typography>
