@@ -20,54 +20,58 @@ function Header() {
 
   const renderAuthButtons = () => {
     if (currentUser) {
-      if (location.pathname === '/') {
-        return (
-          <>
-            <Button sx={{ color: '#333333' }} component={Link} to="/reading-list">
-              Reading List
-            </Button>
-            <Button sx={{ color: '#333333' }} component={Link} to="/path-finder">
-              Path Between 2 Papers
-            </Button>
-            <Button sx={{ color: '#333333' }} onClick={handleLogout}>
-              Logout
-            </Button>
-          </>
-        );
-      } else if (location.pathname === '/reading-list' || location.pathname === '/path-finder') {
-        return (
-          <>
-            <Button sx={{ color: '#333333' }} component={Link} to="/">
-              Home
-            </Button>
-            <Button sx={{ color: '#333333' }} component={Link} to="/reading-list">
-              Reading List
-            </Button>
-            <Button sx={{ color: '#333333' }} component={Link} to="/path-finder">
-              Path Between 2 Papers
-            </Button>
-            <Button sx={{ color: '#333333' }} onClick={handleLogout}>
-              Logout
-            </Button>
-          </>
-        );
-      }
+      return (
+        <>
+          <Button 
+            sx={{ 
+              color: '#333333',
+              backgroundColor: location.pathname === '/' ? '#e0e0e0' : 'transparent'
+            }} 
+            component={Link} 
+            to="/"
+          >
+            Home
+          </Button>
+          <Button 
+            sx={{ 
+              color: '#333333',
+              backgroundColor: location.pathname === '/reading-list' ? '#e0e0e0' : 'transparent'
+            }} 
+            component={Link} 
+            to="/reading-list"
+          >
+            Reading List
+          </Button>
+          <Button 
+            sx={{ 
+              color: '#333333',
+              backgroundColor: location.pathname === '/path-finder' ? '#e0e0e0' : 'transparent'
+            }} 
+            component={Link} 
+            to="/path-finder"
+          >
+            Path Between 2 Papers
+          </Button>
+          <Button sx={{ color: '#333333' }} onClick={handleLogout}>
+            Logout
+          </Button>
+        </>
+      );
     } else {
-      if (location.pathname === '/login') {
-        return (
-          <Button sx={{ color: '#333333' }} component={Link} to="/signup">
-            Sign Up
-          </Button>
-        );
-      } else if (location.pathname === '/signup') {
-        return (
-          <Button sx={{ color: '#333333' }} component={Link} to="/login">
-            Login
-          </Button>
-        );
-      }
+      return (
+        <>
+          {location.pathname === '/login' ? (
+            <Button sx={{ color: '#333333' }} component={Link} to="/signup">
+              Sign Up
+            </Button>
+          ) : (
+            <Button sx={{ color: '#333333' }} component={Link} to="/login">
+              Login
+            </Button>
+          )}
+        </>
+      );
     }
-    return null;
   };
 
   return (
