@@ -20,13 +20,32 @@ function CitationNetwork() {
   const [searchQuery, setSearchQuery] = useState('');
   const [paperOptions, setPaperOptions] = useState([]);
   const [selectedPaper, setSelectedPaper] = useState('');
-  const [depth, setDepth] = useState(2);
-  const [numPapers, setNumPapers] = useState(10);
-  const [selectionCriteria, setSelectionCriteria] = useState('citationCount');
+  const [depth, setDepth] = useState('');
+  const [numPapers, setNumPapers] = useState('');
+  const [selectionCriteria, setSelectionCriteria] = useState('');
   const [rootNode, setRootNode] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [treeGenerationCount, setTreeGenerationCount] = useState(0);
 
+  const getHintText = (step) => {
+    if (treeGenerationCount >= 5) return null;
+    
+    switch(step) {
+      case 1:
+        return "Start by searching for a research paper using its title or authors. This will be the central node of your citation network.";
+      case 2:
+        return "Choose how many levels deep you want to explore the citations. A higher depth shows more connections but may be more complex.";
+      case 3:
+        return "Select how many papers to display at each level. More papers give a broader view but may be harder to navigate.";
+      case 4:
+        return "Choose how to select papers: by citation count (most cited), PageRank (most influential), or random selection.";
+      default:
+        return null;
+    }
+  };
+  
   const debouncedSearch = React.useCallback(
     debounce(async (query) => {
       if (!query || query.length < 3) return; // Only search if query is 3 or more characters
@@ -43,11 +62,63 @@ function CitationNetwork() {
     [] // Empty dependency array since we don't need to recreate this function
   );
 
+  const handleStepComplete = () => {
+    if (currentStep < 4) {
+      setCurrentStep(prev => prev + 1);
+    } else {
+      setTreeGenerationCount(prev => prev + 1);
+      handleGenerateTree();
+    }
+  };
+
   React.useEffect(() => {
     return () => {
       debouncedSearch.cancel();
     };
   }, [debouncedSearch]);
+
+  const handlePaperSelection = (newValue) => {
+    setSelectedPaper(newValue ? newValue.id : '');
+    // Reset all subsequent values
+    setDepth('');
+    setNumPapers('');
+    setSelectionCriteria('');
+    setRootNode(null);
+    if (newValue) {
+      setCurrentStep(2);
+    } else {
+      setCurrentStep(1);
+    }
+  };
+
+  const handleDepthChange = (e) => {
+    setDepth(e.target.value);
+    // Reset subsequent values
+    setNumPapers('');
+    setSelectionCriteria('');
+    setRootNode(null);
+    if (e.target.value) {
+      setCurrentStep(3);
+    }
+  };
+
+  const handleNumPapersChange = (e) => {
+    setNumPapers(e.target.value);
+    // Reset subsequent values
+    setSelectionCriteria('');
+    setRootNode(null);
+    if (e.target.value) {
+      setCurrentStep(4);
+    }
+  };
+  
+  const handleSelectionCriteriaChange = (e) => {
+    setSelectionCriteria(e.target.value);
+    setRootNode(null);
+    if (e.target.value) {
+      handleStepComplete();
+    }
+  };
 
   const handleGenerateTree = () => {
     setLoading(true);
@@ -88,9 +159,9 @@ function CitationNetwork() {
 
   return (
     <Box sx={{ 
-      mt: 1,  // Increased top margin
+      mt: 1,
       mx: 'auto',
-      maxWidth: '1200px',
+      maxWidth: '800px',
       p: 1,
     }}>
       <Typography 
@@ -108,98 +179,144 @@ function CitationNetwork() {
       >
         Generate Citation Network
       </Typography>
-      <Grid container spacing={2} alignItems="center">
-        {/* Search and Paper Selection */}
-        <Grid item xs={12} sm={8}>
-        <Autocomplete
-          fullWidth
-          options={paperOptions}
-          getOptionLabel={(option) => option.label || ''}
-          loading={searchLoading}
-          onInputChange={(_, newInputValue) => {
-            setSearchQuery(newInputValue);
-            if (newInputValue.length >= 3) { // Only trigger search if 3 or more characters
-              debouncedSearch(newInputValue);
-            } else {
-              setPaperOptions([]); // Clear options if input is too short
-            }
-          }}
-          onChange={(_, newValue) => {
-            setSelectedPaper(newValue ? newValue.id : '');
-          }}
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label="Search for a paper (minimum 3 characters)"
-              variant="outlined"
-              InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                  <>
-                    {searchLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                    {params.InputProps.endAdornment}
-                  </>
-                ),
+      
+      <Grid container direction="column" spacing={3}>
+        {/* Step 1: Paper Search */}
+        <Grid item xs={12}>
+          <Box sx={{ mb: 1 }}>
+            {treeGenerationCount < 5 ? (
+              <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                {getHintText(1)}
+              </Typography>
+            ) : (
+              <Typography variant="subtitle1" color="primary" sx={{ mb: 1 }}>
+                1. Search for a paper
+              </Typography>
+            )}
+            <Autocomplete
+              fullWidth
+              options={paperOptions}
+              getOptionLabel={(option) => option.label || ''}
+              loading={searchLoading}
+              onInputChange={(_, newInputValue) => {
+                setSearchQuery(newInputValue);
+                if (newInputValue.length >= 3) {
+                  debouncedSearch(newInputValue);
+                } else {
+                  setPaperOptions([]);
+                }
               }}
+              onChange={(_, newValue) => handlePaperSelection(newValue)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search for a paper (minimum 3 characters)"
+                  variant="outlined"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {searchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
             />
-          )}
-        />
+          </Box>
         </Grid>
 
-        {/* Depth, Number of Papers, Selection Criteria */}
-        <Grid item xs={12} sm={2}>
-          <TextField
-            label="Depth"
-            type="number"
-            variant="outlined"
-            fullWidth
-            inputProps={{ min: 2, max: 20 }}
-            value={depth}
-            onChange={(e) => setDepth(e.target.value)}
-          />
-        </Grid>
-        <Grid item xs={12} sm={2}>
-          <FormControl variant="outlined" fullWidth>
-            <InputLabel>Number of Papers</InputLabel>
-            <Select
-              value={numPapers}
-              onChange={(e) => setNumPapers(e.target.value)}
-              label="Number of Papers"
-            >
-              {[10, 20, 40, 60, 100].map((num) => (
-                <MenuItem key={num} value={num}>
-                  {num}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={3}>
-          <FormControl variant="outlined" fullWidth>
-            <InputLabel>Selection Criteria</InputLabel>
-            <Select
-              value={selectionCriteria}
-              onChange={(e) => setSelectionCriteria(e.target.value)}
-              label="Selection Criteria"
-            >
-              <MenuItem value="citationCount">Citation Count</MenuItem>
-              <MenuItem value="pageRank">PageRank</MenuItem>
-              <MenuItem value="random">Random</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
+        {/* Step 2: Depth */}
+        {currentStep >= 2 && (
+          <Grid item xs={12}>
+            <Box sx={{ mb: 1 }}>
+            {treeGenerationCount < 5 ? (
+              <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                {getHintText(2)}
+              </Typography>
+            ) : (
+              <Typography variant="subtitle1" color="primary" sx={{ mb: 1 }}>
+                Select citation depth
+              </Typography>
+            )}
+              <FormControl variant="outlined" fullWidth>
+                <InputLabel>Depth</InputLabel>
+                <Select
+                  value={depth}
+                  label="Depth"
+                  onChange={handleDepthChange}
+                >
+                  {[2, 3, 4, 5].map((num) => (
+                    <MenuItem key={num} value={num}>
+                      {`${num} levels`}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Grid>
+        )}
 
-        {/* Generate Tree Button */}
-        <Grid item xs={12} sm={3}>
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handleGenerateTree}
-            fullWidth
-          >
-            Generate Tree
-          </Button>
-        </Grid>
+        {/* Step 3: Number of Papers */}
+        {currentStep >= 3 && (
+          <Grid item xs={12}>
+            <Box sx={{ mb: 1 }}>
+              {treeGenerationCount < 5 ? (
+                <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                  {getHintText(3)}
+                </Typography>
+                ) : (
+                  <Typography variant="subtitle1" color="primary" sx={{ mb: 1 }}>
+                    Papers per level
+                  </Typography>
+                )}
+              <FormControl variant="outlined" fullWidth>
+                <InputLabel>Number of Papers</InputLabel>
+                <Select
+                  value={numPapers}
+                  label="Number of Papers"
+                  onChange={handleNumPapersChange}
+                >
+                  {[10, 15, 20, 25, 30].map((num) => (
+                    <MenuItem key={num} value={num}>
+                      {`${num} papers`}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </Grid>
+        )}
+
+        {/* Step 4: Selection Criteria */}
+        {currentStep >= 4 && (
+          <Grid item xs={12}>
+            <Box sx={{ mb: 1 }}>
+              {treeGenerationCount < 5 ? (
+                <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 1, fontSize: '0.9rem', fontStyle: 'italic' }}>
+                  {getHintText(4)}
+                </Typography>
+                ) : (
+                  <Typography variant="subtitle1" color="primary" sx={{ mb: 1 }}>
+                    Selection method
+                  </Typography>
+                )}
+              <FormControl variant="outlined" fullWidth>
+                <InputLabel>Selection Criteria</InputLabel>
+                <Select
+                  value={selectionCriteria}
+                  label="Selection Criteria"
+                  onChange={handleSelectionCriteriaChange}
+                >
+                  <MenuItem value="citationCount">Citation Count</MenuItem>
+                  <MenuItem value="pageRank">PageRank</MenuItem>
+                  <MenuItem value="random">Random</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Grid>
+        )}
       </Grid>
 
       {/* Loading Indicator */}

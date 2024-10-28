@@ -27,6 +27,7 @@ function PathFinder() {
   const [searchLoading2, setSearchLoading2] = useState(false);
   const [loading, setLoading] = useState(false);
   const [paths, setPaths] = useState(null);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const debouncedSearch1 = React.useCallback(
     debounce(async (query) => {
@@ -69,10 +70,7 @@ function PathFinder() {
   
 
   const handleFindPaths = async () => {
-    if (!selectedPaper1 || !selectedPaper2) {
-      alert('Please select both papers.');
-      return;
-    }
+    if (!selectedPaper1 || !selectedPaper2) return;
 
     setLoading(true);
     setPaths(null);
@@ -97,9 +95,15 @@ function PathFinder() {
     }
   };
 
+  React.useEffect(() => {
+    if (selectedPaper1 && selectedPaper2) {
+      handleFindPaths();
+    }
+  }, [selectedPaper1, selectedPaper2]);
+
   return (
     <Box sx={{ 
-      mt: 1,  // Increased top margin
+      mt: 1,
       mx: 'auto',
       maxWidth: '1200px',
       p: 1,
@@ -117,16 +121,19 @@ function PathFinder() {
           mb: 4
         }}
       >
-        Generate Path Between papers
+        Find Citation Path Between Papers
       </Typography>
+      
       <Grid container spacing={2} alignItems="center">
-        {/* First Paper Search and Selection */}
-        <Grid item xs={12} sm={6}>
+        {/* First Paper Search */}
+        <Grid item xs={12}>
           <Autocomplete
             fullWidth
             options={paperOptions1}
             getOptionLabel={(option) => option.label || ''}
             loading={searchLoading1}
+            // removed disabled prop
+            value={paperOptions1.find(option => option.id === selectedPaper1) || null}
             onInputChange={(_, newInputValue) => {
               setSearchQuery1(newInputValue);
               if (newInputValue.length >= 3) {
@@ -137,11 +144,19 @@ function PathFinder() {
             }}
             onChange={(_, newValue) => {
               setSelectedPaper1(newValue ? newValue.id : null);
+              if (newValue) {
+                setCurrentStep(2);
+              } else {
+                // Reset second paper if first paper is cleared
+                setSelectedPaper2(null);
+                setPaths(null);
+                setCurrentStep(1);
+              }
             }}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Search for the first paper"
+                label="Select the first paper"
                 variant="outlined"
                 InputProps={{
                   ...params.InputProps,
@@ -157,62 +172,44 @@ function PathFinder() {
           />
         </Grid>
 
-        {/* Second Paper Search and Selection */}
-        <Grid item xs={12} sm={6}>
-          <Autocomplete
-            fullWidth
-            options={paperOptions2}
-            getOptionLabel={(option) => option.label || ''}
-            loading={searchLoading2}
-            onInputChange={(_, newInputValue) => {
-              setSearchQuery2(newInputValue);
-              if (newInputValue.length >= 3) {
-                debouncedSearch2(newInputValue);
-              } else {
-                setPaperOptions2([]);
-              }
-            }}
-            onChange={(_, newValue) => {
-              setSelectedPaper2(newValue ? newValue.id : null);
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Search for the second paper"
-                variant="outlined"
-                InputProps={{
-                  ...params.InputProps,
-                  endAdornment: (
-                    <>
-                      {searchLoading2 ? <CircularProgress color="inherit" size={20} /> : null}
-                      {params.InputProps.endAdornment}
-                    </>
-                  ),
-                }}
-              />
-            )}
-          />
-        </Grid>
-        {/* Find Paths Button */}
-        <Grid 
-          item 
-          xs={12} 
-          sm={3} 
-          container 
-          justifyContent="center"
-          sx={{ mx: 'auto' }}  // Add horizontal margin auto
-        >
-          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={handleFindPaths}
-              sx={{ minWidth: '200px' }}  // Optional: set a minimum width
-            >
-              Find Paths
-            </Button>
-          </Box>
-        </Grid>
+        {/* Second Paper Search - Only shown after first paper is selected */}
+        {currentStep >= 2 && (
+          <Grid item xs={12}>
+            <Autocomplete
+              fullWidth
+              options={paperOptions2}
+              getOptionLabel={(option) => option.label || ''}
+              loading={searchLoading2}
+              onInputChange={(_, newInputValue) => {
+                setSearchQuery2(newInputValue);
+                if (newInputValue.length >= 3) {
+                  debouncedSearch2(newInputValue);
+                } else {
+                  setPaperOptions2([]);
+                }
+              }}
+              onChange={(_, newValue) => {
+                setSelectedPaper2(newValue ? newValue.id : null);
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Select the second paper"
+                  variant="outlined"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {searchLoading2 ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+          </Grid>
+        )}
       </Grid>
 
       {/* Loading Indicator */}
@@ -226,7 +223,7 @@ function PathFinder() {
       {paths && !loading && (
         <PathGraph
           paths={paths}
-          isPathFinder={true} // Pass a prop to differentiate if needed
+          isPathFinder={true}
         />
       )}
     </Box>
