@@ -13,6 +13,8 @@ import {
 } from '@mui/material';
 import axios from '../axiosInstance';
 import Graph from './Graph';
+import { Autocomplete } from '@mui/material';
+import debounce from 'lodash/debounce';
 
 function CitationNetwork() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -21,19 +23,31 @@ function CitationNetwork() {
   const [depth, setDepth] = useState(2);
   const [numPapers, setNumPapers] = useState(10);
   const [selectionCriteria, setSelectionCriteria] = useState('citationCount');
-  const [loading, setLoading] = useState(false);
   const [rootNode, setRootNode] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
-  const handleSearch = () => {
-    axios
-      .post('/search_papers/', { query: searchQuery })
-      .then((response) => {
+  const debouncedSearch = React.useCallback(
+    debounce(async (query) => {
+      if (!query || query.length < 3) return; // Only search if query is 3 or more characters
+      setSearchLoading(true);
+      try {
+        const response = await axios.post('/search_papers/', { query });
         setPaperOptions(response.data);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Error searching papers:', error);
-      });
-  };
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 800), // Increased debounce delay to 800ms
+    [] // Empty dependency array since we don't need to recreate this function
+  );
+
+  React.useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
 
   const handleGenerateTree = () => {
     setLoading(true);
@@ -96,40 +110,40 @@ function CitationNetwork() {
       </Typography>
       <Grid container spacing={2} alignItems="center">
         {/* Search and Paper Selection */}
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Search for a paper"
-            variant="outlined"
-            fullWidth
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </Grid>
-        <Grid item xs={12} sm={2}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSearch}
-            fullWidth
-          >
-            Search
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <FormControl variant="outlined" fullWidth>
-            <InputLabel>Select Paper</InputLabel>
-            <Select
-              value={selectedPaper}
-              onChange={(e) => setSelectedPaper(e.target.value)}
-              label="Select Paper"
-            >
-              {paperOptions.map((paper) => (
-                <MenuItem key={paper.id} value={paper.id}>
-                  {paper.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+        <Grid item xs={12} sm={8}>
+        <Autocomplete
+          fullWidth
+          options={paperOptions}
+          getOptionLabel={(option) => option.label || ''}
+          loading={searchLoading}
+          onInputChange={(_, newInputValue) => {
+            setSearchQuery(newInputValue);
+            if (newInputValue.length >= 3) { // Only trigger search if 3 or more characters
+              debouncedSearch(newInputValue);
+            } else {
+              setPaperOptions([]); // Clear options if input is too short
+            }
+          }}
+          onChange={(_, newValue) => {
+            setSelectedPaper(newValue ? newValue.id : '');
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Search for a paper (minimum 3 characters)"
+              variant="outlined"
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {searchLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+            />
+          )}
+        />
         </Grid>
 
         {/* Depth, Number of Papers, Selection Criteria */}
