@@ -9,6 +9,7 @@ import {
   Grid,
   CircularProgress,
   Box,
+  Typography
 } from '@mui/material';
 import axios from '../axiosInstance';
 import PathGraph from './PathGraph'; // Import the new PathGraph component
@@ -75,7 +76,27 @@ function PathFinder() {
   };
 
   return (
-    <Box>
+    <Box sx={{ 
+      mt: 1,  // Increased top margin
+      mx: 'auto',
+      maxWidth: '1200px',
+      p: 1,
+    }}>
+      <Typography 
+        variant="h4" 
+        gutterBottom 
+        sx={{
+          fontFamily: '"Inter Display", sans-serif',
+          fontSize: "30px",
+          fontWeight: "700",
+          letterSpacing: "-1px",
+          textAlign: "center",
+          color: "rgb(51, 51, 51)",
+          mb: 4
+        }}
+      >
+        Generate Path Between papers
+      </Typography>
       <Grid container spacing={2} alignItems="center">
         {/* First Paper Search and Selection */}
         <Grid item xs={12} sm={5}>
@@ -152,16 +173,24 @@ function PathFinder() {
         </Grid>
 
         {/* Find Paths Button */}
-        <Grid item xs={12} sm={3}>
-          <Button
-            variant="contained"
-            align="center"
-            color="secondary"
-            onClick={handleFindPaths}
-            fullWidth
-          >
-            Find Paths
-          </Button>
+        <Grid 
+          item 
+          xs={12} 
+          sm={3} 
+          container 
+          justifyContent="center"
+          sx={{ mx: 'auto' }}  // Add horizontal margin auto
+        >
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={handleFindPaths}
+              sx={{ minWidth: '200px' }}  // Optional: set a minimum width
+            >
+              Find Paths
+            </Button>
+          </Box>
         </Grid>
       </Grid>
 

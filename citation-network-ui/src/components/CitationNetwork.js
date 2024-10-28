@@ -9,7 +9,7 @@ import {
   Grid,
   CircularProgress,
   Box,
-  Paper
+  Typography
 } from '@mui/material';
 import axios from '../axiosInstance';
 import Graph from './Graph';
@@ -73,7 +73,27 @@ function CitationNetwork() {
   };
 
   return (
-    <Box>
+    <Box sx={{ 
+      mt: 1,  // Increased top margin
+      mx: 'auto',
+      maxWidth: '1200px',
+      p: 1,
+    }}>
+      <Typography 
+        variant="h4" 
+        gutterBottom 
+        sx={{
+          fontFamily: '"Inter Display", sans-serif',
+          fontSize: "30px",
+          fontWeight: "700",
+          letterSpacing: "-1px",
+          textAlign: "center",
+          color: "rgb(51, 51, 51)",
+          mb: 4
+        }}
+      >
+        Generate Citation Network
+      </Typography>
       <Grid container spacing={2} alignItems="center">
         {/* Search and Paper Selection */}
         <Grid item xs={12} sm={6}>
