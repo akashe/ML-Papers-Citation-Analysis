@@ -13,38 +13,60 @@ import {
 } from '@mui/material';
 import axios from '../axiosInstance';
 import PathGraph from './PathGraph'; // Import the new PathGraph component
+import { Autocomplete } from '@mui/material';
+import debounce from 'lodash/debounce';
 
 function PathFinder() {
   const [searchQuery1, setSearchQuery1] = useState('');
   const [searchQuery2, setSearchQuery2] = useState('');
   const [paperOptions1, setPaperOptions1] = useState([]);
   const [paperOptions2, setPaperOptions2] = useState([]);
-  const [selectedPaper1, setSelectedPaper1] = useState('');
-  const [selectedPaper2, setSelectedPaper2] = useState('');
+  const [selectedPaper1, setSelectedPaper1] = useState(null);
+  const [selectedPaper2, setSelectedPaper2] = useState(null);
+  const [searchLoading1, setSearchLoading1] = useState(false);
+  const [searchLoading2, setSearchLoading2] = useState(false);
   const [loading, setLoading] = useState(false);
   const [paths, setPaths] = useState(null);
 
-  const handleSearch1 = () => {
-    axios
-      .post('/search_papers/', { query: searchQuery1 })
-      .then((response) => {
+  const debouncedSearch1 = React.useCallback(
+    debounce(async (query) => {
+      if (!query || query.length < 3) return;
+      setSearchLoading1(true);
+      try {
+        const response = await axios.post('/search_papers/', { query });
         setPaperOptions1(response.data);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Error searching papers:', error);
-      });
-  };
+      } finally {
+        setSearchLoading1(false);
+      }
+    }, 800),
+    []
+  );
 
-  const handleSearch2 = () => {
-    axios
-      .post('/search_papers/', { query: searchQuery2 })
-      .then((response) => {
+  const debouncedSearch2 = React.useCallback(
+    debounce(async (query) => {
+      if (!query || query.length < 3) return;
+      setSearchLoading2(true);
+      try {
+        const response = await axios.post('/search_papers/', { query });
         setPaperOptions2(response.data);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Error searching papers:', error);
-      });
-  };
+      } finally {
+        setSearchLoading2(false);
+      }
+    }, 800),
+    []
+  );
+
+  React.useEffect(() => {
+    return () => {
+      debouncedSearch1.cancel();
+      debouncedSearch2.cancel();
+    };
+  }, [debouncedSearch1, debouncedSearch2]);
+  
 
   const handleFindPaths = async () => {
     if (!selectedPaper1 || !selectedPaper2) {
@@ -99,79 +121,78 @@ function PathFinder() {
       </Typography>
       <Grid container spacing={2} alignItems="center">
         {/* First Paper Search and Selection */}
-        <Grid item xs={12} sm={5}>
-          <TextField
-            label="Search for the first paper"
-            variant="outlined"
+        <Grid item xs={12} sm={6}>
+          <Autocomplete
             fullWidth
-            value={searchQuery1}
-            onChange={(e) => setSearchQuery1(e.target.value)}
+            options={paperOptions1}
+            getOptionLabel={(option) => option.label || ''}
+            loading={searchLoading1}
+            onInputChange={(_, newInputValue) => {
+              setSearchQuery1(newInputValue);
+              if (newInputValue.length >= 3) {
+                debouncedSearch1(newInputValue);
+              } else {
+                setPaperOptions1([]);
+              }
+            }}
+            onChange={(_, newValue) => {
+              setSelectedPaper1(newValue ? newValue.id : null);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Search for the first paper"
+                variant="outlined"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {searchLoading1 ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
           />
-        </Grid>
-        <Grid item xs={12} sm={2}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSearch1}
-            fullWidth
-          >
-            Search
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={5}>
-          <FormControl variant="outlined" fullWidth>
-            <InputLabel>Select First Paper</InputLabel>
-            <Select
-              value={selectedPaper1}
-              onChange={(e) => setSelectedPaper1(e.target.value)}
-              label="Select First Paper"
-            >
-              {paperOptions1.map((paper) => (
-                <MenuItem key={paper.id} value={paper.id}>
-                  {paper.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
         </Grid>
 
         {/* Second Paper Search and Selection */}
-        <Grid item xs={12} sm={5}>
-          <TextField
-            label="Search for the second paper"
-            variant="outlined"
+        <Grid item xs={12} sm={6}>
+          <Autocomplete
             fullWidth
-            value={searchQuery2}
-            onChange={(e) => setSearchQuery2(e.target.value)}
+            options={paperOptions2}
+            getOptionLabel={(option) => option.label || ''}
+            loading={searchLoading2}
+            onInputChange={(_, newInputValue) => {
+              setSearchQuery2(newInputValue);
+              if (newInputValue.length >= 3) {
+                debouncedSearch2(newInputValue);
+              } else {
+                setPaperOptions2([]);
+              }
+            }}
+            onChange={(_, newValue) => {
+              setSelectedPaper2(newValue ? newValue.id : null);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Search for the second paper"
+                variant="outlined"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {searchLoading2 ? <CircularProgress color="inherit" size={20} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
+            )}
           />
         </Grid>
-        <Grid item xs={12} sm={2}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleSearch2}
-            fullWidth
-          >
-            Search
-          </Button>
-        </Grid>
-        <Grid item xs={12} sm={5}>
-          <FormControl variant="outlined" fullWidth>
-            <InputLabel>Select Second Paper</InputLabel>
-            <Select
-              value={selectedPaper2}
-              onChange={(e) => setSelectedPaper2(e.target.value)}
-              label="Select Second Paper"
-            >
-              {paperOptions2.map((paper) => (
-                <MenuItem key={paper.id} value={paper.id}>
-                  {paper.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-
         {/* Find Paths Button */}
         <Grid 
           item 
