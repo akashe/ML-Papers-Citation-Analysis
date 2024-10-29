@@ -28,6 +28,9 @@ function PathFinder() {
   const [loading, setLoading] = useState(false);
   const [paths, setPaths] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [open1, setOpen1] = useState(false);
+  const [open2, setOpen2] = useState(false);
+  const [shouldCancel, setShouldCancel] = useState(false);
 
   const debouncedSearch1 = React.useCallback(
     debounce(async (query) => {
@@ -67,31 +70,36 @@ function PathFinder() {
       debouncedSearch2.cancel();
     };
   }, [debouncedSearch1, debouncedSearch2]);
-  
+
 
   const handleFindPaths = async () => {
     if (!selectedPaper1 || !selectedPaper2) return;
-
+  
     setLoading(true);
     setPaths(null);
-
+  
     try {
       const response = await axios.post('/find_paths/', {
         start_id: parseInt(selectedPaper1),
         end_id: parseInt(selectedPaper2),
       });
-
-      if (!response.data.paths) {
-        alert(response.data.message);
-        setLoading(false);
+  
+      // If we should cancel, don't update the state with the response
+      if (shouldCancel) {
         return;
       }
-
+  
+      if (!response.data.paths) {
+        alert(response.data.message);
+        return;
+      }
+  
       setPaths(response.data.paths);
     } catch (error) {
       console.error('Error finding paths:', error);
     } finally {
       setLoading(false);
+      setShouldCancel(false);
     }
   };
 
@@ -129,13 +137,26 @@ function PathFinder() {
         <Grid item xs={12}>
           <Autocomplete
             fullWidth
+            open={open1 && (searchLoading1 || paperOptions1.length > 0)}
+            onOpen={() => setOpen1(true)}
+            onClose={() => setOpen1(false)}
             options={paperOptions1}
             getOptionLabel={(option) => option.label || ''}
             loading={searchLoading1}
-            // removed disabled prop
+            noOptionsText="No options"
             value={paperOptions1.find(option => option.id === selectedPaper1) || null}
             onInputChange={(_, newInputValue) => {
               setSearchQuery1(newInputValue);
+              // Set the cancel flag and reset everything
+              setShouldCancel(true);
+              setLoading(false);
+              setSelectedPaper1(null);
+              setSelectedPaper2(null);
+              setPaths(null);
+              setCurrentStep(1);
+              setPaperOptions2([]);
+              setSearchQuery2('');
+              
               if (newInputValue.length >= 3) {
                 debouncedSearch1(newInputValue);
               } else {
@@ -147,7 +168,6 @@ function PathFinder() {
               if (newValue) {
                 setCurrentStep(2);
               } else {
-                // Reset second paper if first paper is cleared
                 setSelectedPaper2(null);
                 setPaths(null);
                 setCurrentStep(1);
@@ -177,9 +197,13 @@ function PathFinder() {
           <Grid item xs={12}>
             <Autocomplete
               fullWidth
+              open={open2 && (searchLoading2 || paperOptions2.length > 0)}
+              onOpen={() => setOpen2(true)}
+              onClose={() => setOpen2(false)}
               options={paperOptions2}
               getOptionLabel={(option) => option.label || ''}
               loading={searchLoading2}
+              noOptionsText="No options"
               onInputChange={(_, newInputValue) => {
                 setSearchQuery2(newInputValue);
                 if (newInputValue.length >= 3) {

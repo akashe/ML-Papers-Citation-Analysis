@@ -157,6 +157,8 @@ function CitationNetwork() {
       });
   };
 
+  const [open, setOpen] = useState(false);
+
   return (
     <Box sx={{ 
       mt: 1,
@@ -195,9 +197,13 @@ function CitationNetwork() {
             )}
             <Autocomplete
               fullWidth
+              open={open && (searchLoading || paperOptions.length > 0)}
+              onOpen={() => setOpen(true)}
+              onClose={() => setOpen(false)}
               options={paperOptions}
               getOptionLabel={(option) => option.label || ''}
               loading={searchLoading}
+              noOptionsText="No options"
               onInputChange={(_, newInputValue) => {
                 setSearchQuery(newInputValue);
                 if (newInputValue.length >= 3) {
