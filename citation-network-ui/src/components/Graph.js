@@ -170,6 +170,7 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
               },
               data: response.data,
               nodeId: nodeId,
+              added: false, // Reset the added state
             });
           })
           .catch((error) => {
@@ -178,7 +179,14 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
       });
 
       cy.on('mouseout', 'node', () => {
-        setTooltip({ open: false, anchorEl: null, data: null, nodeId: null });
+        // Immediately close and reset tooltip state
+        setTooltip({
+          open: false,
+          anchorPosition: null,
+          data: null,
+          nodeId: null,
+          added: false
+        });
       });
     }
   }, [cyRef, depth, numPapers, selectionCriteria, rootNode]);
@@ -256,6 +264,8 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
           horizontal: 'right',
         }}
         disableRestoreFocus
+        transitionDuration={0}  // Add this line
+        style={{ pointerEvents: 'none' }}  // Add this line
       >
         {tooltip.data && (
           <Card className={classes.tooltipCard}>
