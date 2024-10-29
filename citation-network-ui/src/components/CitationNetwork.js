@@ -163,9 +163,12 @@ function CitationNetwork() {
     <Box sx={{ 
       mt: 1,
       mx: 'auto',
-      maxWidth: '800px',
       p: 1,
     }}>
+      <Box sx={{
+        maxWidth: '800px',
+        mx: 'auto'
+      }}>
       <Typography 
         variant="h4" 
         gutterBottom 
@@ -329,10 +332,10 @@ function CitationNetwork() {
       {loading && (
         <Grid container justifyContent="center" sx={{ mt: 2 }}>
           <CircularProgress />
-        </Grid>
-      )}
-
-      {/* Graph Component */}
+          </Grid>
+        )}
+      </Box>
+        {/* Graph Component */}
       {rootNode && !loading && (
         <Graph
           rootNode={rootNode}
