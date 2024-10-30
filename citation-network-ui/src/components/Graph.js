@@ -15,9 +15,10 @@ import { db } from '../firebase';
 
 const useStyles = makeStyles({
   graphContainer: {
-    height: '600px',
+    height: '80vh', // Change to viewport height
     width: '100%',
     marginTop: '20px',
+    overflow: 'auto', // Enable scrolling
   },
   tooltipCard: {
     // pointerEvents: 'none',
@@ -58,7 +59,18 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
       loadChildren(rootNode.id.toString());
 
       // Center and fit the graph
-      cy.layout({ name: 'breadthfirst', directed: true, padding: 10 }).run();
+      cy.layout({
+        name: 'breadthfirst',
+        directed: true,
+        padding: 10,
+        spacingFactor: 2,
+        grid: true,
+        rankDir: 'TB',
+        rankSep: 600,
+        fit: true, // Increased from 200 to 400
+        minDist: 100, // Minimum distance between nodes
+        maxDist: 200, // Maximum distance between nodes
+      }).run();
     }
   }, [rootNode]);
 
@@ -75,34 +87,83 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
       .then((response) => {
         const cy = cyRef.current;
         cy.batch(() => {
-          response.data.forEach((child) => {
-            if (!cy.getElementById(child.id.toString()).length) {
+          if (nodeId !== rootNode.id.toString() && response.data.length > 0) {
+            // Create a virtual node for the vertical connector
+            const connectorId = `connector-${nodeId}`;
+            cy.add({
+              data: {
+                id: connectorId,
+                isConnector: true,
+                parentNode: nodeId,
+              }
+            });
+  
+            // Add edge from parent to connector
+            cy.add({
+              data: {
+                id: `edge-${nodeId}-${connectorId}`,
+                source: nodeId,
+                target: connectorId,
+              }
+            });
+  
+            // Add children and connect them to the connector
+            response.data.forEach((child) => {
+              // Add child node if it doesn't exist
+              if (!cy.getElementById(child.id.toString()).length) {
+                cy.add({
+                  data: {
+                    id: child.id.toString(),
+                    label: child.label || child.id.toString(),
+                  }
+                });
+              }
+  
+              // Connect child to connector
               cy.add({
                 data: {
-                  id: child.id.toString(),
-                  label: child.label || child.id.toString(),
-                },
-              });
-            }
-            if (
-              !cy
-                .edges(
-                  `[source="${nodeId}"][target="${child.id.toString()}"]`
-                )
-                .length
-            ) {
-              cy.add({
-                data: {
-                  source: nodeId.toString(),
+                  id: `edge-${connectorId}-${child.id}`,
+                  source: connectorId,
                   target: child.id.toString(),
-                },
+                }
               });
-            }
-          });
+            });
+          } else {
+            // Root node: direct connections
+            response.data.forEach((child) => {
+              // Add child node if it doesn't exist
+              if (!cy.getElementById(child.id.toString()).length) {
+                cy.add({
+                  data: {
+                    id: child.id.toString(),
+                    label: child.label || child.id.toString(),
+                  }
+                });
+  
+                // Connect directly to root
+                cy.add({
+                  data: {
+                    id: `edge-${nodeId}-${child.id}`,
+                    source: nodeId,
+                    target: child.id.toString(),
+                  }
+                });
+              }
+            });
+          }
         });
 
-        // Re-layout the graph
-        cy.layout({ name: 'breadthfirst', directed: true, padding: 10, spacingFactor: 1.5, }).run();
+  
+        // Update layout
+        cy.layout({
+          name: 'breadthfirst',
+          directed: true,
+          padding: 10,
+          spacingFactor: 2,
+          grid: true,
+          rankDir: 'TB',
+          rankSep: 200,
+        }).run();
       })
       .catch((error) => {
         console.error('Error loading children:', error);
@@ -112,28 +173,58 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
   // Function to collapse children of a node
   const collapseChildren = (nodeId) => {
     const cy = cyRef.current;
-    const nodesToRemove = [];
-    const edgesToRemove = [];
-
+    const nodesToRemove = new Set();
+    const edgesToRemove = new Set();
+  
     const recursiveCollapse = (currentNodeId) => {
-      const childrenEdges = cy.edges(`[source="${currentNodeId}"]`);
-      childrenEdges.forEach((edge) => {
+      // Get all outgoing edges from this node
+      const outgoingEdges = cy.edges(`[source = "${currentNodeId}"]`);
+      
+      outgoingEdges.forEach(edge => {
         const targetNode = edge.target();
-        recursiveCollapse(targetNode.id());
-        edgesToRemove.push(edge);
-        nodesToRemove.push(targetNode);
+        edgesToRemove.add(edge);
+        
+        // If target is a connector node
+        if (targetNode.data('isConnector')) {
+          nodesToRemove.add(targetNode);
+          // Get all edges from connector to its children
+          const connectorEdges = cy.edges(`[source = "${targetNode.id()}"]`);
+          connectorEdges.forEach(connectorEdge => {
+            const childNode = connectorEdge.target();
+            edgesToRemove.add(connectorEdge);
+            nodesToRemove.add(childNode);
+            // Recursively remove children of this node
+            recursiveCollapse(childNode.id());
+          });
+        } else {
+          // For direct connections (like from root node)
+          nodesToRemove.add(targetNode);
+          recursiveCollapse(targetNode.id());
+        }
       });
     };
-
+  
     recursiveCollapse(nodeId);
-
+  
+    // Remove all collected elements in batch
     cy.batch(() => {
-      edgesToRemove.forEach((edge) => edge.remove());
-      nodesToRemove.forEach((node) => node.remove());
+      Array.from(edgesToRemove).forEach(edge => edge.remove());
+      Array.from(nodesToRemove).forEach(node => node.remove());
     });
-
-    // Re-layout the graph
-    cy.layout({ name: 'breadthfirst', directed: true, padding: 10, spacingFactor: 1.5 }).run();
+  
+    // Update layout while maintaining zoom
+    const currentZoom = cy.zoom();
+    cy.layout({
+      name: 'breadthfirst',
+      directed: true,
+      padding: 50,
+      spacingFactor: 1.5,
+      grid: true,
+      rankDir: 'TB',
+      rankSep: 150,
+      fit: false,
+    }).run();
+    cy.zoom(currentZoom);
   };
 
   // Event Handlers
@@ -217,8 +308,17 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
           style={{ width: '100%', height: '100%' }}
           cy={(cy) => {
             cyRef.current = cy;
+            cy.userZoomingEnabled(false);
           }}
-          layout={{ name: 'breadthfirst', directed: true, padding: 10 }}
+          layout={{
+            name: 'breadthfirst',
+            directed: true,
+            padding: 10,
+            spacingFactor: 2,
+            grid: true,
+            rankDir: 'TB',
+            rankSep: 200,
+          }}
           stylesheet={[
             {
               selector: 'node',
@@ -232,8 +332,12 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
                 'text-max-width': '100px',
                 'font-size': '16px',
                 'text-margin-y': '10px',
-                width: 32,
-                height: 32,
+                width: '38px', // Fixed width with units
+                height: '38px', // Fixed height with units
+                'min-width': '38px', // Prevent shrinking
+                'min-height': '38px',
+                'font-size-relative-to': 'none', // Prevent font scaling
+                'text-scale': 1, // Keep text size constant
               },
             },
             {
@@ -243,9 +347,21 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
                 'line-color': '#ccc',
                 'target-arrow-color': '#ccc',
                 'target-arrow-shape': 'triangle',
-                'curve-style': 'bezier',
+                'curve-style': 'straight',
+                'edge-distances': 'node-position',
               },
             },
+            {
+              selector: 'node[isConnector]',
+              style: {
+                'background-opacity': 0,
+                'border-width': 0,
+                'width': '1px',
+                'height': '1px',
+                'shape': 'rectangle',
+                label: '', // Ensure connectors have no label
+              }
+            }
           ]}
         />
       </div>
