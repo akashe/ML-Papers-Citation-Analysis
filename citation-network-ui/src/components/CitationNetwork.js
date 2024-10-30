@@ -34,7 +34,7 @@ function CitationNetwork() {
     
     switch(step) {
       case 1:
-        return "Start by searching for a research paper using its title or authors. This will be the central node of your citation network.";
+        return "Start by searching for a research paper using its title. This will be the central node of your citation network.";
       case 2:
         return "Choose how many levels deep you want to explore the citations. A higher depth shows more connections but may be more complex.";
       case 3:
