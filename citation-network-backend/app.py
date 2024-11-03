@@ -9,9 +9,6 @@ import sqlite3
 import time
 import random
 
-from run_cpp_code_from_python import run_bfs_cpp_generation, create_png_from_dot, get_path_between_two_nodes
-from save_tree_in_db import save_tree_info_in_db
-
 app = FastAPI()
 
 app.add_middleware(
@@ -24,7 +21,7 @@ app.add_middleware(
 
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
-DATABASE = 'citations_data.db'
+DATABASE = 'data/citations_data.db'
 
 
 class PaperSearchRequest(BaseModel):
@@ -75,34 +72,8 @@ async def search_papers(request: PaperSearchRequest):
 
 @app.post("/generate_tree/")
 async def generate_tree(request: TreeRequest, background_tasks: BackgroundTasks):
-    table_name = f"Tree_{request.paper_id}_{request.depth}"
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-
-    # Check if the table already exists
-    c.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';")
-    if c.fetchone():
-        conn.close()
-        return {"message": "Tree already exists"}
-
-    conn.close()
-    # Run the BFS tree generation in the background
-    background_tasks.add_task(run_bfs_generation, request.paper_id, request.depth)
     return {"message": "Tree generation started"}
 
-
-def run_bfs_generation(paper_id: int, depth: int, create_png: bool = False):
-    print("Starting background task")
-
-    print(paper_id,depth)
-    # Run c++ code to get the BFS Tree dot file
-    run_bfs_cpp_generation(str(paper_id), str(depth))
-
-    # Save the dot file in db for retrieval
-    save_tree_info_in_db(f"data/bfs_trees/bfs_tree_{paper_id}_{depth}.dot")
-
-    if create_png:
-        create_png_from_dot(str(paper_id), str(depth))
 
 @app.post("/get_root_info/")
 async def get_root_info(request: TreeRequest):
@@ -143,7 +114,7 @@ async def get_paper_info(request: PaperRequest):
     paper_url = paper_results[3]
 
     # Fetch paper details from the Paper_info table using the URL
-    c.execute("SELECT arxiv_id, citationCount, year, semantic_id, url, title, published_date, tldr FROM Paper_info WHERE url = ?", (paper_url,))
+    c.execute("SELECT arxiv_id, citationCount, year, semantic_id, url, abstract, title, published_date, tldr FROM Paper_info WHERE url = ?", (paper_url,))
     paper_info = c.fetchone()
     print(paper_info)
     conn.close()
@@ -164,41 +135,28 @@ async def get_paper_info(request: PaperRequest):
         "year": paper_info[2],
         "semantic_id": paper_info[3],
         "url": paper_info[4],
-        "title": paper_info[5],
-        "published_date": paper_info[6],
-        "tldr": paper_info[7]
+        "title": paper_info[6],
+        "published_date": paper_info[7],
+        "tldr": paper_info[8]
     }
 
 
 @app.post("/get_children/")
 async def get_children(request: ChildrenRequest):
-    table_name = f"Tree_{request.root_id}_{request.depth}"
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
 
-    # Polling mechanism to wait until the table is created
-    max_attempts = 25
-    attempts = 0
-    while attempts < max_attempts:
-        c.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}';")
-        if c.fetchone():
-            break
-        attempts += 1
-        print("sleeping to wait for table creation")
-        time.sleep(1)  # Wait for 1 second before checking again
-
-    if attempts == max_attempts:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Tree table not found after waiting")
-
-    c.execute(f'SELECT cites FROM {table_name} WHERE paper_id = ?', (request.paper_id,))
-    children = c.fetchall()
-
+    # Get all children directly from the edges table
+    c.execute('''
+        SELECT n.* 
+        FROM PaperEdges e 
+        JOIN Nodes n ON e.target_id = n.id 
+        WHERE e.source_id = ?
+        LIMIT 9999
+    ''', (request.paper_id,))
+    
     children_info = []
-    for child in children:
-        child_id = child[0]
-        c.execute('SELECT * FROM Nodes WHERE id = ?', (child_id,))
-        paper_info = c.fetchone()
+    for paper_info in c.fetchall():
         children_info.append({
             'id': paper_info[0],
             'label': paper_info[1].replace(r"\n", ""),
@@ -207,6 +165,7 @@ async def get_children(request: ChildrenRequest):
             'pageRank': paper_info[5]
         })
 
+    # Apply sorting based on selection criteria
     if request.selection_criteria == 'citationCount':
         children_info.sort(key=lambda x: x['citationCount'], reverse=True)
     elif request.selection_criteria == 'pageRank':
@@ -214,10 +173,9 @@ async def get_children(request: ChildrenRequest):
     elif request.selection_criteria == 'random':
         random.shuffle(children_info)
 
+    # Apply limit if specified
     if request.num_papers > 0:
         children_info = children_info[:request.num_papers]
-    else:
-        raise NotImplementedError
 
     conn.close()
     return children_info
@@ -225,9 +183,42 @@ async def get_children(request: ChildrenRequest):
 
 @app.post("/find_paths/")
 async def find_path(request: PathRequest):
-    start_node = str(request.start_id)
-    end_node = str(request.end_id)
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    
+    def bfs_path(start_id, end_id):
+        queue = [(start_id, [start_id])]
+        visited = {start_id}
+        
+        while queue:
+            (vertex, path) = queue.pop(0)
+            # Get all neighbors from PaperEdges table
+            c.execute('SELECT target_id FROM PaperEdges WHERE source_id = ?', (vertex,))
+            for neighbor, in c.fetchall():
+                if neighbor == end_id:
+                    return path + [neighbor]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+        return None
 
-    result = get_path_between_two_nodes(start_node, end_node)
-
-    return result
+    path = bfs_path(request.start_id, request.end_id)
+    
+    if path:
+        # Get paper details for each node in path
+        path_details = []
+        for node_id in path:
+            c.execute('SELECT id, label, year, citationCount, pageRank FROM Nodes WHERE id = ?', (node_id,))
+            details = c.fetchone()
+            path_details.append({
+                'id': details[0],
+                'label': details[1],
+                'year': details[2],
+                'citationCount': details[3],
+                'pageRank': details[4]
+            })
+        conn.close()
+        return {'path': path_details}
+    
+    conn.close()
+    raise HTTPException(status_code=404, detail="No path found")
