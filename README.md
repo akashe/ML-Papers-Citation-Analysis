@@ -75,7 +75,7 @@ python parse_csv_populate_db.py
 Run FASTAPI backend app:
 # nodes which don't have info about arxiv_id or semantic_id
 # root node being shown when tree is being generated
-uvicorn app:app --reload
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 
 Optimizations:
 1. memoization in tables of db for path between 2 nodes
