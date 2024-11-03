@@ -1,72 +1,73 @@
-# Citation Analysis or Bibliometrics of Research papers in the filed of ML, AI and Deep Learning
+# Citation Analysis or Bibliometrics of Research papers 
 
-## Citation Network Backend:
+In this repo we process AI/ML papers from past 10 years. The core idea is to visually see the:
+1. most important ideas in the field of machine learning.
+2. see the stepping stones of State of the art of current research.
+3. See trends and directions in the scholarly circles.
 
+When we are able to see the citation graph in a BFS manner, it allows to quickly see how an idea evolved over time. 
 
-
-Run FASTAPI backend app:
-```
-cd citation-network-backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt 
-
-uvicorn app:app --host 0.0.0.0 --port 8000 --reload
-```
+Demo images:  
 
 
-## Citation Network UI: 
-React Fronend code for the application. Allows user context mangagment, with reading list option to users where they can add papers they found interesting.
-
-Before you begin, ensure you have Node.js and npm installed on your system. You can check if you have them installed by running:
-
-```bash
-node --version
-npm --version
-```
+1. This is the citation graph from the 'Attention is all you need' paper. The graph shows the top 5 papers which cite from this paper with the highest pagerank.  
+![Graph](build_graph/data/graph.png)
+2. You can get a quick glance about the paper by just hovering over it. ![Graph](build_graph/data/paper_card.png) 
+3. As you find more and more interesting paper, add them to your reading list to revisit them later.  ![Graph](build_graph/data/reading_list.png)  
+4. Go as deep as you want! Every time you click on a paper, the top works derived from that paper will pop up. Use this to find how an idea evolved over time or find gaps in the literature. ![Graph](build_graph/data/multi_level.png)   
 
 
-If you don't have Node.js and npm installed:
 
-##### Windows
-1. Download the installer from [Node.js official website](https://nodejs.org/)
-2. Run the installer (npm will be installed automatically with Node.js)
+The code is structured into 3 main folders
 
-##### macOS
-Using Homebrew:
-```bash
-brew install node
-```
+- #### Citation Network Backend:
+   
+   Run FASTAPI backend app:
+   ```
+   cd citation-network-backend
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt 
+   
+   uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+   ```
+   
 
-##### Linux (Ubuntu/Debian)
-```bash
-sudo apt update
-sudo apt install nodejs npm
-```
+- #### Citation Network UI: 
+   React Fronend code for the application. Allows user context mangagment, with reading list option to users where they can add papers they found interesting.
+   
+   Before you begin, ensure you have Node.js and npm installed on your system. You can check if you have them installed by running:
+   
+   ```bash
+   node --version
+   npm --version
+   ```
 
-### Setup Instructions
+   If you don't have Node.js and npm installed:
 
-1. Change the folder:
+   ##### macOS
+   ```bash
+   brew install node
+   ```
+
+   ##### Linux (Ubuntu/Debian)
+   ```bash
+   sudo apt update
+   sudo apt install nodejs npm
+   ```
+
+   ##### Setup Instructions
+
    ```bash
    cd citation-network-ui
-   ```
-
-2. Install dependencies:
-   ```bash
    npm install
-   ```
-
-3. Start the development server:
-   ```bash
    npm start -- --host 0.0.0.0
    ```
-   This will open [http://localhost:3000](http://localhost:3000) in your browser.
 
-
-## Build graph:
-This folder contains all the steps necessary to create a citation graph. Steps:
-1. Get ML papers and their details from the last 10 years from Arxiv.
-2. Get their citation data from semantic scholar.
-3. Combine both information to create graph dot file. The dot file will have papers as nodes and the citations encoded as edges from 'Cited Paper' to 'Citing Paper'.
-4. Perform PageRank on this graph. PageRank is an important metric to find papers with low citation count but being referred by highly influential papers.
-5. Process the final graph and store it in DB for FASTAPI backend.
+- #### Build graph:
+   This folder contains all the steps necessary to create a citation graph. Major steps include:
+  1. Get ML papers and their details from the last 10 years from Arxiv.
+  2. Get their citation data from semantic scholar.
+  3. Combine both information to create graph dot file. The dot file will have papers as nodes and the citations encoded as edges from 'Cited Paper' to 'Citing Paper'.
+  4. Perform PageRank on this graph. PageRank is an important metric to find papers with low citation count but being referred by highly influential papers.
+  5. Process the final graph and store it in DB for FASTAPI backend.

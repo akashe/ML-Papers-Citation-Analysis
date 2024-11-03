@@ -136,8 +136,8 @@ async def get_paper_info(request: PaperRequest):
         "semantic_id": paper_info[3],
         "url": paper_info[4],
         "title": paper_info[6],
-        "published_date": paper_info[7],
-        "tldr": paper_info[8]
+        "published_date": paper_info[7], #TODO: change db field orientation
+        "tldr": paper_info[5]
     }
 
 
