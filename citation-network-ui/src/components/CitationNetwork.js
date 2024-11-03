@@ -34,7 +34,7 @@ function CitationNetwork() {
     
     switch(step) {
       case 1:
-        return "Start by searching for a research paper using its title or authors. This will be the central node of your citation network.";
+        return "Start by searching for a research paper using its title. This will be the central node of your citation network.";
       case 2:
         return "Choose how many levels deep you want to explore the citations. A higher depth shows more connections but may be more complex.";
       case 3:
@@ -157,13 +157,18 @@ function CitationNetwork() {
       });
   };
 
+  const [open, setOpen] = useState(false);
+
   return (
     <Box sx={{ 
       mt: 1,
       mx: 'auto',
-      maxWidth: '800px',
       p: 1,
     }}>
+      <Box sx={{
+        maxWidth: '800px',
+        mx: 'auto'
+      }}>
       <Typography 
         variant="h4" 
         gutterBottom 
@@ -195,9 +200,13 @@ function CitationNetwork() {
             )}
             <Autocomplete
               fullWidth
+              open={open && (searchLoading || paperOptions.length > 0)}
+              onOpen={() => setOpen(true)}
+              onClose={() => setOpen(false)}
               options={paperOptions}
               getOptionLabel={(option) => option.label || ''}
               loading={searchLoading}
+              noOptionsText="No options"
               onInputChange={(_, newInputValue) => {
                 setSearchQuery(newInputValue);
                 if (newInputValue.length >= 3) {
@@ -278,7 +287,7 @@ function CitationNetwork() {
                   label="Number of Papers"
                   onChange={handleNumPapersChange}
                 >
-                  {[10, 15, 20, 25, 30].map((num) => (
+                  {[5, 10, 15, 20].map((num) => (
                     <MenuItem key={num} value={num}>
                       {`${num} papers`}
                     </MenuItem>
@@ -323,10 +332,10 @@ function CitationNetwork() {
       {loading && (
         <Grid container justifyContent="center" sx={{ mt: 2 }}>
           <CircularProgress />
-        </Grid>
-      )}
-
-      {/* Graph Component */}
+          </Grid>
+        )}
+      </Box>
+        {/* Graph Component */}
       {rootNode && !loading && (
         <Graph
           rootNode={rootNode}

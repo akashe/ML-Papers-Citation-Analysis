@@ -166,12 +166,13 @@ function Login() {
 
   return (
     <Grid container component="main" 
-    sx={{ 
-      height: 'calc(100vh - 64px - 64px)',
-      display: 'flex',  // Add this
-      alignItems: 'center',  // Add this
-      justifyContent: 'center'  // Add this
-    }}>
+      sx={{ 
+        minHeight: { xs: 'calc(100vh - 112px)', md: 'calc(100vh - 128px)' },
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: { xs: 1, md: 2 } // Stack vertically on mobile
+      }}>
       <Grid
         item
         xs={12}
@@ -180,10 +181,10 @@ function Login() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100%',  // Add this
-          position: 'relative',  // Add this
-          overflow: 'hidden', // Add this to prevent any potential overflow
-          padding: '2rem',
+          height: { xs: '25vh', sm: '50vh', md: '100%' }, // Reduced height on mobile from 40vh to 35vh
+          position: 'relative',
+          overflow: 'hidden',
+          padding: { xs: '0', sm: '1rem', md: '2rem' },
         }}
       >
         <ExplainerComponent/>
@@ -196,12 +197,18 @@ function Login() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          p: { xs: 2, md: 4 }, // Add padding on mobile
+          width: '100%' // Ensure full width on mobile
         }}
       >
         <Box 
           component="form"
           onSubmit={handleLogin}
-          sx={{ maxWidth: 300, p: 4 }}
+          sx={{ 
+            width: '100%',
+            maxWidth: { xs: '100%', sm: 300 },
+            p: { xs: 2, md: 4 }
+          }}
         >
           <Typography 
             variant="h5" 
