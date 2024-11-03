@@ -287,7 +287,7 @@ function CitationNetwork() {
                   label="Number of Papers"
                   onChange={handleNumPapersChange}
                 >
-                  {[10, 15, 20, 25, 30].map((num) => (
+                  {[5, 10, 15, 20].map((num) => (
                     <MenuItem key={num} value={num}>
                       {`${num} papers`}
                     </MenuItem>
