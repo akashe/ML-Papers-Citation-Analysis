@@ -1,101 +1,114 @@
-# Citation Analysis or Bibliometrics of Research papers 
+# 🎯 Citation Analysis & Bibliometrics Explorer
 
-In this repo we process AI/ML papers from past 10 years. The core idea is to visually see the:
-1. most important ideas in the field of machine learning.
-2. see the stepping stones of State of the art of current research.
-3. See trends and directions in the scholarly circles.
+> Discover the evolution of AI/ML research through interactive citation networks
 
-When we are able to see the citation graph in a BFS manner, it allows to quickly see how an idea evolved over time. 
+This tool helps you visualize and explore the interconnected world of Machine Learning research papers from the past decade, allowing you to:
 
-Demo images:  
+🔍 **Discover** the most influential ideas in machine learning  
+🏗️ **Trace** the stepping stones of current state-of-the-art research  
+📈 **Identify** emerging trends in scholarly circles
 
+## ✨ Features
 
-1. This is the citation graph from the 'Attention is all you need' paper. The graph shows the top 5 papers which cite from this paper with the highest pagerank.  
+### 1. Interactive Citation Graphs
+Explore papers in a BFS (Breadth-First Search) manner to see how ideas evolve over time. Here's the citation graph starting from the landmark "Attention is all you need" paper:
+
 <p align="center">
-<img src="build_graph/pngs/graph.png" alt="Graph"  height="400"/>  
+<img src="build_graph/pngs/graph.png" alt="Graph" height="400"/>  
 </p>
 
-2. You can get a quick glance about the paper by just hovering over it.  
+### 2. Paper Insights at a Glance
+Hover over any paper to get quick insights without diving deep:
+
 <p align="center">
-<img src="build_graph/pngs/paper_card.png" alt="Paper card" align="center" width="300" height="300"/>  
+<img src="build_graph/pngs/paper_card.png" alt="Paper card" width="300" height="300"/>  
 </p>
-3. As you find more and more interesting paper, add them to your reading list to revisit them later.  
+
+### 3. Personalized Reading Lists
+Build your research roadmap by saving interesting papers for later:
+
 <p align="center">
 <img src="build_graph/pngs/reading_list.png" alt="Reading list" width="800" height="400"/>  
 </p>
-4. Go as deep as you want! Every time you click on a paper, the top works derived from that paper will pop up. Use this to find how an idea evolved over time or find gaps in the literature.  
+
+### 4. Deep Exploration
+Click on any paper to discover its most influential derivatives. Perfect for:
+- Tracking idea evolution
+- Finding research gaps
+- Understanding paper lineage
+
 <p align="center">
 <img src="build_graph/pngs/multi_level.png" alt="Multi level" width="900" height="500"/>  
 </p>
 
+## 🚀 Getting Started
 
-
-The code is structured into 3 main folders
-
-- #### Citation Network Backend:
+### 1. Backend Setup (FastAPI)
    
-   Run FASTAPI backend app:
-   ```
-   cd citation-network-backend
-   mkdir data
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt 
-   
-   uvicorn app:app --host 0.0.0.0 --port 8000 --reload
-   ```
+Run FASTAPI backend app:
+```
+cd citation-network-backend
+mkdir data
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt 
 
-   A demo db files is present at this [location](s3://gifs-and-vids/citations_data.db). You can download the file and put the file in the data folder.
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+> 💡 Download the demo database from [here](s3://gifs-and-vids/citations_data.db) and place it in the `data` folder.
    
 
-- #### Citation Network UI: 
-   React Fronend code for the application. Allows user context mangagment, with reading list option to users where they can add papers they found interesting.
+### 2. Frontend Setup (React)
+
+#### Prerequisites
+Ensure you have Node.js and npm installed:
    
-   Before you begin, ensure you have Node.js and npm installed on your system. You can check if you have them installed by running:
-   
-   ```bash
-   node --version
-   npm --version
-   ```
+```bash
+node --version
+npm --version
+```
 
-   If you don't have Node.js and npm installed:
+#### Installation Options
 
-   ##### macOS
-   ```bash
-   brew install node
-   ```
+**macOS:**
+```bash
+brew install node
+```
 
-   ##### Linux (Ubuntu/Debian)
-   ```bash
-   sudo apt update
-   sudo apt install nodejs npm
-   ```
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt update
+sudo apt install nodejs npm
+```
 
-   ##### Environment Setup
-   1. Create a `.env` file in the `citation-network-ui` directory
-   2. Copy the contents from `.env.example` and fill in your Firebase configuration values:
-   ```
-   REACT_APP_FIREBASE_API_KEY=your_api_key_here
-   REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain_here
-   REACT_APP_FIREBASE_PROJECT_ID=your_project_id_here
-   REACT_APP_FIREBASE_STORAGE_BUCKET=your_storage_bucket_here
-   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id_here
-   REACT_APP_FIREBASE_APP_ID=your_app_id_here
-   REACT_APP_FIREBASE_MEASUREMENT_ID=your_measurement_id_here
-   ```
+#### Environment Configuration
+1. Create `.env` in `citation-network-ui`
+2. Copy from `.env.example` and configure:
+```
+REACT_APP_FIREBASE_API_KEY=your_api_key_here
+REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain_here
+REACT_APP_FIREBASE_PROJECT_ID=your_project_id_here
+REACT_APP_FIREBASE_STORAGE_BUCKET=your_storage_bucket_here
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id_here
+REACT_APP_FIREBASE_APP_ID=your_app_id_here
+REACT_APP_FIREBASE_MEASUREMENT_ID=your_measurement_id_here
+```
 
-   ##### Setup Instructions
+#### Launch Frontend
 
-   ```bash
-   cd citation-network-ui
-   npm install
-   npm start -- --host 0.0.0.0
-   ```
+```bash
+cd citation-network-ui
+npm install
+npm start -- --host 0.0.0.0
+```
 
-- #### Build graph:
-   This folder contains all the steps necessary to create a citation graph. Major steps include:
-  1. Get ML papers and their details from the last 10 years from Arxiv.
-  2. Get their citation data from semantic scholar.
-  3. Combine both information to create graph dot file. The dot file will have papers as nodes and the citations encoded as edges from 'Cited Paper' to 'Citing Paper'.
-  4. Perform PageRank on this graph. PageRank is an important metric to find papers with low citation count but being referred by highly influential papers.
-  5. Process the final graph and store it in DB for FASTAPI backend.
+## 🛠️ Graph Building Pipeline
+
+The `build_graph` directory contains tools to create citation networks through these steps:
+
+1. **Data Collection**: Fetch ML papers from Arxiv (last 10 years)
+2. **Citation Analysis**: Gather citation data from Semantic Scholar
+3. **Graph Generation**: Create DOT files with papers as nodes and citations as edges
+4. **Ranking**: Apply PageRank to identify influential papers
+5. **Database Integration**: Process and store graph data for FastAPI backend
