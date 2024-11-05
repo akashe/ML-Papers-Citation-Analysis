@@ -12,7 +12,7 @@ Demo images:
 
 1. This is the citation graph from the 'Attention is all you need' paper. The graph shows the top 5 papers which cite from this paper with the highest pagerank.  
 <p align="center">
-<img src="build_graph/pngs/graph.png" alt="Graph"  height="500"/>  
+<img src="build_graph/pngs/graph.png" alt="Graph"  height="400"/>  
 </p>
 
 2. You can get a quick glance about the paper by just hovering over it.  
@@ -25,7 +25,7 @@ Demo images:
 </p>
 4. Go as deep as you want! Every time you click on a paper, the top works derived from that paper will pop up. Use this to find how an idea evolved over time or find gaps in the literature.  
 <p align="center">
-<img src="build_graph/pngs/multi_level.png" alt="Multi level" width="800" height="600"/>  
+<img src="build_graph/pngs/multi_level.png" alt="Multi level" width="900" height="500"/>  
 </p>
 
 
@@ -37,12 +37,15 @@ The code is structured into 3 main folders
    Run FASTAPI backend app:
    ```
    cd citation-network-backend
+   mkdir data
    python3 -m venv .venv
    source .venv/bin/activate
    pip install -r requirements.txt 
    
    uvicorn app:app --host 0.0.0.0 --port 8000 --reload
    ```
+
+   A demo db files is present at this [location](s3://gifs-and-vids/citations_data.db). You can download the file and put the file in the data folder.
    
 
 - #### Citation Network UI: 
