@@ -56,6 +56,19 @@ The code is structured into 3 main folders
    sudo apt install nodejs npm
    ```
 
+   ##### Environment Setup
+   1. Create a `.env` file in the `citation-network-ui` directory
+   2. Copy the contents from `.env.example` and fill in your Firebase configuration values:
+   ```
+   REACT_APP_FIREBASE_API_KEY=your_api_key_here
+   REACT_APP_FIREBASE_AUTH_DOMAIN=your_auth_domain_here
+   REACT_APP_FIREBASE_PROJECT_ID=your_project_id_here
+   REACT_APP_FIREBASE_STORAGE_BUCKET=your_storage_bucket_here
+   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id_here
+   REACT_APP_FIREBASE_APP_ID=your_app_id_here
+   REACT_APP_FIREBASE_MEASUREMENT_ID=your_measurement_id_here
+   ```
+
    ##### Setup Instructions
 
    ```bash
