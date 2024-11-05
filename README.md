@@ -11,10 +11,22 @@ Demo images:
 
 
 1. This is the citation graph from the 'Attention is all you need' paper. The graph shows the top 5 papers which cite from this paper with the highest pagerank.  
-![Graph](build_graph/pngs/graph.png)
-2. You can get a quick glance about the paper by just hovering over it. ![Paper card](build_graph/pngs/paper_card.png) 
-3. As you find more and more interesting paper, add them to your reading list to revisit them later.  ![Reading list](build_graph/pngs/reading_list.png)  
-4. Go as deep as you want! Every time you click on a paper, the top works derived from that paper will pop up. Use this to find how an idea evolved over time or find gaps in the literature. ![Multi level](build_graph/pngs/multi_level.png)   
+<p align="center">
+<img src="build_graph/pngs/graph.png" alt="Graph"  height="500"/>  
+</p>
+
+2. You can get a quick glance about the paper by just hovering over it.  
+<p align="center">
+<img src="build_graph/pngs/paper_card.png" alt="Paper card" align="center" width="300" height="300"/>  
+</p>
+3. As you find more and more interesting paper, add them to your reading list to revisit them later.  
+<p align="center">
+<img src="build_graph/pngs/reading_list.png" alt="Reading list" width="800" height="400"/>  
+</p>
+4. Go as deep as you want! Every time you click on a paper, the top works derived from that paper will pop up. Use this to find how an idea evolved over time or find gaps in the literature.  
+<p align="center">
+<img src="build_graph/pngs/multi_level.png" alt="Multi level" width="800" height="600"/>  
+</p>
 
 
 
