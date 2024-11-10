@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     graphviz \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
@@ -18,7 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY citation-network-backend/ .
 
 # Create necessary directories
-RUN mkdir -p data/bfs_trees data/pngs
+RUN mkdir -p data/bfs_trees data/pngs && \
+    curl -o data/citations_data.db https://gifs-and-vids.s3.amazonaws.com/citations_data.db
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
