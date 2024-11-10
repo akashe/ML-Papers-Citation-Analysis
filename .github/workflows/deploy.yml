@@ -30,6 +30,16 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Create ECR repositories if they don't exist
+      run: |
+        # Create frontend repository if it doesn't exist
+        aws ecr describe-repositories --repository-names ${ECR_FRONTEND_REPOSITORY} || \
+        aws ecr create-repository --repository-name ${ECR_FRONTEND_REPOSITORY}
+        
+        # Create backend repository if it doesn't exist
+        aws ecr describe-repositories --repository-names ${ECR_BACKEND_REPOSITORY} || \
+        aws ecr create-repository --repository-name ${ECR_BACKEND_REPOSITORY}
     
     - name: Build and push Docker images
       env:
