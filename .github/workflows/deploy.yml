@@ -10,8 +10,6 @@ env:
   ECR_BACKEND_REPOSITORY: citation-network-backend
   ECS_CLUSTER: citation-network-cluster
   ECS_SERVICE: citation-network-service
-  ECS_TASK_DEFINITION: citation-network-task
-  CONTAINER_NAME: citation-network-app
 
 jobs:
   deploy:
@@ -30,126 +28,19 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Create ECR repositories if they don't exist
-      run: |
-        # Create frontend repository if it doesn't exist
-        aws ecr describe-repositories --repository-names ${ECR_FRONTEND_REPOSITORY} || \
-        aws ecr create-repository --repository-name ${ECR_FRONTEND_REPOSITORY}
-        
-        # Create backend repository if it doesn't exist
-        aws ecr describe-repositories --repository-names ${ECR_BACKEND_REPOSITORY} || \
-        aws ecr create-repository --repository-name ${ECR_BACKEND_REPOSITORY}
     
     - name: Build and push Docker images
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
       run: |
         # Build and push frontend
-        docker build -t $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$IMAGE_TAG -f docker/frontend.Dockerfile .
-        docker push $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$IMAGE_TAG
+        docker build -t $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$GITHUB_SHA -f docker/frontend.Dockerfile .
+        docker push $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$GITHUB_SHA
         
         # Build and push backend
-        docker build -t $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG -f docker/backend.Dockerfile .
-        docker push $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG
-        
-        echo "::set-output name=image::$ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$IMAGE_TAG"
-        echo "::set-output name=backend_image::$ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG"
-
-    - name: Download or create task definition
+        docker build -t $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$GITHUB_SHA -f docker/backend.Dockerfile .
+        docker push $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$GITHUB_SHA
+    
+    - name: Update ECS service
       run: |
-        # Try to download existing task definition, if it fails create a new one
-        if ! aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} --query taskDefinition > task-definition.json; then
-          echo "Creating new task definition"
-          cat << EOF > task-definition.json
-          {
-            "family": "${{ env.ECS_TASK_DEFINITION }}",
-            "networkMode": "awsvpc",
-            "requiresCompatibilities": ["FARGATE"],
-            "cpu": "1024",
-            "memory": "2048",
-            "containerDefinitions": [
-              {
-                "name": "${{ env.CONTAINER_NAME }}",
-                "image": "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_FRONTEND_REPOSITORY }}:${{ github.sha }}",
-                "portMappings": [
-                  {
-                    "containerPort": 80,
-                    "hostPort": 80,
-                    "protocol": "tcp"
-                  }
-                ],
-                "essential": true
-              },
-              {
-                "name": "backend",
-                "image": "${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_BACKEND_REPOSITORY }}:${{ github.sha }}",
-                "portMappings": [
-                  {
-                    "containerPort": 8000,
-                    "hostPort": 8000,
-                    "protocol": "tcp"
-                  }
-                ],
-                "essential": true,
-                "environment": [
-                  {
-                    "name": "PYTHONUNBUFFERED",
-                    "value": "1"
-                  }
-                ]
-              }
-            ]
-          }
-          EOF
-        fi
-
-    - name: Register task definition
-      run: |
-        aws ecs register-task-definition --cli-input-json file://task-definition.json
-
-    - name: Create ECS cluster if it doesn't exist
-      run: |
-        if ! aws ecs describe-clusters --clusters ${{ env.ECS_CLUSTER }} --query 'clusters[0].status' | grep "ACTIVE"; then
-          echo "Creating new ECS cluster"
-          aws ecs create-cluster --cluster-name ${{ env.ECS_CLUSTER }}
-        fi
-
-    - name: Create or update ECS service
-      run: |
-        if ! aws ecs describe-services --cluster ${{ env.ECS_CLUSTER }} --services ${{ env.ECS_SERVICE }} --query 'services[0].status' | grep "ACTIVE"; then
-          echo "Creating new ECS service"
-          aws ecs create-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service-name ${{ env.ECS_SERVICE }} \
-            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
-            --desired-count 1 \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[${{ secrets.VPC_SUBNET_ID }}],securityGroups=[${{ secrets.SECURITY_GROUP_ID }}],assignPublicIp=ENABLED}"
-        else
-          echo "Updating existing ECS service"
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ env.ECS_SERVICE }} \
-            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
-            --force-new-deployment
-        fi
-
-    - name: Verify deployment
-      run: |
-        # Check ECR images
-        aws ecr describe-images \
-          --repository-name $ECR_FRONTEND_REPOSITORY \
-          --image-ids imageTag=${{ github.sha }} || exit 1
-          
-        # Check ECS service status
-        aws ecs describe-services \
-          --cluster $ECS_CLUSTER \
-          --services $ECS_SERVICE \
-          --query 'services[0].status' | grep "ACTIVE" || exit 1
-        
-        # Optional: Wait for service to be stable
-        aws ecs wait services-stable \
-          --cluster $ECS_CLUSTER \
-          --services $ECS_SERVICE
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
