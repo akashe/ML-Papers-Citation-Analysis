@@ -14,6 +14,8 @@ import Footer from './components/Footer';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 function App() {
+  console.log('App rendering, current path:', window.location.pathname);
+  
   return (
     <ThemeProvider theme={theme}>
     <AuthProvider>
@@ -48,6 +50,15 @@ function App() {
                   </PrivateRoute>
                 } 
               />
+              <Route 
+                path="*" 
+                element={
+                  <div>
+                    <h1>404 - Not Found</h1>
+                    <p>Current Path: {window.location.pathname}</p>
+                  </div>
+                } 
+              />
             </Routes>
           </Box>
           <Footer />
@@ -60,6 +71,10 @@ function App() {
 
 function PrivateRoute({ children }) {
   const { currentUser } = useAuth();
+  console.log('PrivateRoute check:', {
+    path: window.location.pathname,
+    hasCurrentUser: !!currentUser
+  });
   return currentUser ? children : <Navigate to="/login" />;
 }
 

@@ -8,6 +8,10 @@ COPY citation-network-ui/package*.json ./
 # Install dependencies
 RUN npm install
 
+
+ENV NODE_ENV=production
+ENV REACT_APP_BACKEND_URL=/api
+
 # Copy source code
 COPY citation-network-ui/ ./
 
