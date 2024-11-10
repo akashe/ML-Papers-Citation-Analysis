@@ -21,3 +21,4 @@ find_path
 graph_bfs
 pagerank
 .vscode
+terraform/*

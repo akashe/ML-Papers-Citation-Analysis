@@ -1,4 +1,6 @@
 # 🎯 Citation Analysis & Bibliometrics Explorer
+![Deploy status](https://github.com/akashe/ML-Papers-Citation-Analysis/actions/workflows/deploy.yml/badge.svg)
+
 
 > Discover the evolution of AI/ML research through interactive citation networks
 
@@ -14,7 +16,7 @@ This tool helps you visualize and explore the interconnected world of Machine Le
 Explore papers in a BFS (Breadth-First Search) manner to see how ideas evolve over time. Here's the citation graph starting from the landmark "Attention is all you need" paper:
 
 <p align="center">
-<img src="build_graph/pngs/graph.png" alt="Graph" height="400"/>  
+<img src="build_graph/pngs/graph.png" alt="Graph">  
 </p>
 
 ### 2. Paper Insights at a Glance
