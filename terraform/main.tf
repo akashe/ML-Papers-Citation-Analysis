@@ -176,8 +176,8 @@ resource "aws_security_group" "ecs_tasks" {
 
   ingress {
     protocol        = "tcp"
-    from_port       = 3000
-    to_port         = 3000
+    from_port       = 80
+    to_port         = 80
     security_groups = [aws_security_group.alb.id]
   }
 
@@ -212,13 +212,18 @@ resource "aws_lb" "main" {
 # Target Groups
 resource "aws_lb_target_group" "frontend" {
   name        = "${var.project_name}-frontend-tg"
-  port        = 3000
+  port        = 80
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
   health_check {
-    path = "/"
+    path                = "/health"  # Update to use the nginx health endpoint
+    healthy_threshold   = 2
+    unhealthy_threshold = 10
+    timeout             = 5
+    interval           = 30
+    matcher            = "200"
   }
 }
 
@@ -319,7 +324,7 @@ resource "aws_ecs_task_definition" "app" {
       image = "${aws_ecr_repository.frontend.repository_url}:latest"
       portMappings = [
         {
-          containerPort = 3000
+          containerPort = 80
           protocol      = "tcp"
         }
       ]
@@ -354,7 +359,7 @@ resource "aws_ecs_service" "main" {
   load_balancer {
     target_group_arn = aws_lb_target_group.frontend.arn
     container_name   = "frontend"
-    container_port   = 3000
+    container_port   = 80
   }
 
   load_balancer {

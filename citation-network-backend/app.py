@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/templates", StaticFiles(directory="templates"), name="templates")
+app.mount("templates", StaticFiles(directory="templates"), name="templates")
 
 DATABASE = 'data/citations_data.db'
 
@@ -222,3 +222,7 @@ async def find_path(request: PathRequest):
     
     conn.close()
     raise HTTPException(status_code=404, detail="No path found")
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
