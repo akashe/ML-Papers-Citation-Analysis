@@ -225,6 +225,14 @@ resource "aws_lb_target_group" "frontend" {
     interval           = 30
     matcher            = "200"
   }
+
+  depends_on = [
+    aws_lb.main
+  ]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_lb_target_group" "backend" {
@@ -236,6 +244,14 @@ resource "aws_lb_target_group" "backend" {
 
   health_check {
     path = "/health"
+  }
+
+  depends_on = [
+    aws_lb.main
+  ]
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -249,6 +265,8 @@ resource "aws_lb_listener" "http" {
     type             = "forward"
     target_group_arn = aws_lb_target_group.frontend.arn
   }
+
+  depends_on = [aws_lb_target_group.frontend]
 }
 
 resource "aws_lb_listener_rule" "backend" {
@@ -265,6 +283,8 @@ resource "aws_lb_listener_rule" "backend" {
       values = ["/api/*"]
     }
   }
+
+  depends_on = [aws_lb_target_group.backend]
 }
 
 # IAM Roles
@@ -328,6 +348,14 @@ resource "aws_ecs_task_definition" "app" {
           protocol      = "tcp"
         }
       ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/citation-network"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "frontend"
+        }
+      }
     },
     {
       name  = "backend"
@@ -338,6 +366,14 @@ resource "aws_ecs_task_definition" "app" {
           protocol      = "tcp"
         }
       ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/citation-network"
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "backend"
+        }
+      }
     }
   ])
 }
@@ -369,4 +405,10 @@ resource "aws_ecs_service" "main" {
   }
 
   depends_on = [aws_lb_listener.http]
+}
+
+# Add CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "ecs_logs" {
+  name              = "/ecs/citation-network"
+  retention_in_days = 14
 }
