@@ -78,10 +78,9 @@ const Component = /*#__PURE__*/ React.forwardRef(function (props, ref) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const isMobileView = useMediaQuery('(max-width:640px), (max-height:640px)');
   const subtitles = [
-    "Explore citation graph of AI/ML papers",
+    "Dive deep into citation graph of AI/ML papers",
     "See how an idea evolved over time",
     "Check for path between 2 papers",
-    "Add papers to your reading list",
     "Find new and interesting papers"
   ];
 
@@ -165,13 +164,13 @@ const Component = /*#__PURE__*/ React.forwardRef(function (props, ref) {
                     "--font-selector": "RlI7SW50ZXJEaXNwbGF5LUJvbGQ=",
                     "--framer-font-family": '"Inter Display", "Inter Display Placeholder", sans-serif',
                     "--framer-font-size": isMobileView ? "min(6vw, 48px)" : "min(7vw, 64px)", // Adjusted for better visibility
-                    "--framer-font-weight": "600",
+                    "--framer-font-weight": "400",
                     "--framer-letter-spacing": "-2px",
                     "--framer-text-alignment": "center",
                     "--framer-text-color": "var(--extracted-gdpscs, rgb(51, 51, 51))",
                   }}
                 >
-                  Citation Network Explorer
+                  Discover Research Visually
                 </motion.h1>
               </RichText>
               <RichText
