@@ -255,20 +255,6 @@ resource "aws_lb_target_group" "backend" {
   }
 }
 
-# ALB Listener and Rules
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.frontend.arn
-  }
-
-  depends_on = [aws_lb_target_group.frontend]
-}
-
 resource "aws_lb_listener_rule" "backend" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 100
@@ -404,11 +390,131 @@ resource "aws_ecs_service" "main" {
     container_port   = 8000
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [
+    aws_lb_listener.http,
+    aws_lb_listener.https,
+    aws_acm_certificate_validation.main
+  ]
 }
 
 # Add CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "ecs_logs" {
   name              = "/ecs/citation-network"
   retention_in_days = 14
+}
+
+data "aws_route53_zone" "main" {
+  zone_id      = "Z09688151ZGBXFPQQW4BB"
+  private_zone = false
+}
+
+resource "aws_route53_record" "main" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id               = aws_lb.main.zone_id
+    evaluate_target_health = true
+  }
+}
+
+# Add www subdomain
+resource "aws_route53_record" "www" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id               = aws_lb.main.zone_id
+    evaluate_target_health = true
+  }
+}
+
+# Add to main.tf
+resource "aws_acm_certificate" "main" {
+  domain_name       = "paperverse.co"  # Hardcode the domain without any trailing period
+  validation_method = "DNS"
+  
+  subject_alternative_names = ["www.paperverse.co"]  # Hardcode the www subdomain
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_acm_certificate_validation" "main" {
+  certificate_arn         = aws_acm_certificate.main.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
+# Update the ALB listener to use HTTPS
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.main.arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend.arn
+  }
+
+  depends_on = [
+    aws_acm_certificate_validation.main
+  ]
+}
+
+# Add DNS validation records
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.main.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.main.zone_id
+}
+
+# HTTP listener that redirects to HTTPS
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# Add HTTPS listener rule for backend
+resource "aws_lb_listener_rule" "backend_https" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api*"]
+    }
+  }
 }

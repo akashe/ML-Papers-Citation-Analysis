@@ -31,7 +31,7 @@ variable "availability_zones" {
 variable "domain_name" {
   description = "Domain name for the application"
   type        = string
-  default     = "" # Remove the requirement for now
+  default     = "paperverse.co"
 }
 
 variable "database_name" {
