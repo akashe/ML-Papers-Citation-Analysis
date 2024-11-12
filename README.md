@@ -4,6 +4,8 @@
 
 > Discover the evolution of AI/ML research through interactive citation networks
 
+👉 **Try it now at [https://paperverse.co](https://paperverse.co)**
+
 This tool helps you visualize and explore the interconnected world of Machine Learning research papers from the past decade, allowing you to:
 
 🔍 **Discover** the most influential ideas in machine learning  
