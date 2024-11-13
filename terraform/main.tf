@@ -435,10 +435,13 @@ resource "aws_route53_record" "www" {
 
 # Add to main.tf
 resource "aws_acm_certificate" "main" {
-  domain_name       = "paperverse.co"  # Hardcode the domain without any trailing period
-  validation_method = "DNS"
+  domain_name               = "paperverse.co"
+  validation_method         = "DNS"
   
-  subject_alternative_names = ["www.paperverse.co"]  # Hardcode the www subdomain
+  subject_alternative_names = [
+    "*.paperverse.co",
+    "www.paperverse.co"
+  ]
 
   lifecycle {
     create_before_destroy = true
@@ -455,7 +458,7 @@ resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
   port              = "443"
   protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
   certificate_arn   = aws_acm_certificate.main.arn
 
   default_action {
