@@ -165,7 +165,8 @@ const Component = /*#__PURE__*/ React.forwardRef(function (props, ref) {
                     "--framer-font-family": '"Inter Display", "Inter Display Placeholder", sans-serif',
                     "--framer-font-size": isMobileView ? "min(6vw, 48px)" : "min(7vw, 64px)", // Adjusted for better visibility
                     "--framer-font-weight": "400",
-                    "--framer-letter-spacing": "-2px",
+                    "--framer-letter-spacing": isMobileView ? "-1px" : "-2px", // Increased spacing for mobile
+                    "--framer-line-height": isMobileView ? "1.2" : "1", // Added line height for better spacing
                     "--framer-text-alignment": "center",
                     "--framer-text-color": "var(--extracted-gdpscs, rgb(51, 51, 51))",
                   }}
@@ -254,7 +255,7 @@ const Component = /*#__PURE__*/ React.forwardRef(function (props, ref) {
 const css = [
     "@supports (aspect-ratio: 1) { body { --framer-aspect-ratio-supported: auto; } }",
     ".framer-LXBZY.framer-1nyiqch, .framer-LXBZY .framer-1nyiqch { display: block; }",
-    ".framer-LXBZY.framer-nhgl9z { align-content: center; align-items: center; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 10px; height: 800px; justify-content: center; overflow: hidden; padding: 0px; position: relative; width: 1200px; }",
+    ".framer-LXBZY.framer-nhgl9z { align-content: center; align-items: center; display: flex; flex-direction: row; flex-wrap: nowrap; gap: 10px; height: 620px; justify-content: center; overflow: hidden; padding: 0px; position: relative; width: 1200px; }", 
     ".framer-LXBZY .framer-xf4cq4 { align-content: flex-start; align-items: flex-start; display: flex; flex: none; flex-direction: column; flex-wrap: nowrap; gap: 20px; height: min-content; justify-content: center; max-width: 2018px; padding: 0px; position: relative; width: 774px; }",
     ".framer-LXBZY .framer-26g0yq, .framer-LXBZY .framer-1h0tzx2 { flex: none; height: auto; overflow: visible; position: relative; white-space: pre-wrap; width: 100%; word-break: break-word; word-wrap: break-word; }",
     "@supports (background: -webkit-named-image(i)) and (not (font-palette:dark)) { .framer-LXBZY.framer-nhgl9z, .framer-LXBZY .framer-xf4cq4 { gap: 0px; } .framer-LXBZY.framer-nhgl9z > * { margin: 0px; margin-left: calc(10px / 2); margin-right: calc(10px / 2); } .framer-LXBZY.framer-nhgl9z > :first-child { margin-left: 0px; } .framer-LXBZY.framer-nhgl9z > :last-child { margin-right: 0px; } .framer-LXBZY .framer-xf4cq4 > * { margin: 0px; margin-bottom: calc(20px / 2); margin-top: calc(20px / 2); } .framer-LXBZY .framer-xf4cq4 > :first-child { margin-top: 0px; } .framer-LXBZY .framer-xf4cq4 > :last-child { margin-bottom: 0px; } }",

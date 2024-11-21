@@ -15,6 +15,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { useAuth } from '../contexts/AuthContext';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
+import GitHubIcon from '@mui/icons-material/GitHub';
 
 function Header() {
   const { currentUser } = useAuth();
@@ -112,6 +113,16 @@ function Header() {
         >
           PaperVerse
         </Typography>
+        {location.pathname !== '/' && (
+          <IconButton
+            href="https://github.com/akashe/ML-Papers-Citation-Analysis"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ mr: 2, color: '#333333' }}
+          >
+            <GitHubIcon />
+          </IconButton>
+        )}
         {renderAuthButtons()}
       </Toolbar>
     </AppBar>
