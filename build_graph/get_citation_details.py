@@ -24,6 +24,24 @@ WAIT_FOR_FAILED_REQUEST = 2
 
 semaphore = Semaphore(NUM_THREADS)
 
+def append_to_json(new_ids, filepath):
+    """Append new IDs to existing JSON file"""
+    existing_ids = []
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as f:
+            existing_ids = json.load(f)
+    
+    # Convert to sets to remove duplicates
+    all_ids = list(set(existing_ids + new_ids))
+    with open(filepath, 'w') as f:
+        json.dump(all_ids, f)
+
+def append_to_csv(df, filepath):
+    """Append dataframe to existing CSV without writing headers"""
+    if os.path.exists(filepath):
+        df.to_csv(filepath, mode='a', header=False, index=False)
+    else:
+        df.to_csv(filepath, index=False)
 
 def save_citations_to_jsonl(citations, filename="data/citations.jsonl"):
     with open(filename, 'a') as f:
@@ -172,14 +190,17 @@ def main():
                 failed_paper_ids.append(paper)
 
     # Save all citations to a CSV file
-    citations_df = pd.DataFrame(citations_data)
-    citations_df.to_csv("data/semantic_citations.csv", index=False)
+    if len(citations_data) > 0:
+        citations_df = pd.DataFrame(citations_data)
+        append_to_csv(citations_df, "data/semantic_citations.csv")
 
-    with open("data/semantic_ids_with_failed_citations.json", "w") as f:
-        json.dump(failed_paper_ids, f)
+    append_to_json(failed_paper_ids, "data/semantic_ids_with_failed_citations.json")
+    append_to_json(papers_with_no_citations, "data/semantic_ids_with_no_citations.json")
 
-    with open("data/semantic_ids_with_no_citations.json", "w") as f:
-        json.dump(papers_with_no_citations, f)
+    print(f'Processed {len(semantic_paper_ids)} papers:')
+    print(f'- Failed citations: {len(failed_paper_ids)}')
+    print(f'- No citations: {len(papers_with_no_citations)}')
+    print(f'- Successfully processed: {len(citations_data)}')
 
 
 if __name__ == "__main__":
