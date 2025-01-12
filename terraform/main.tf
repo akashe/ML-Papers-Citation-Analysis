@@ -217,15 +217,6 @@ resource "aws_lb_target_group" "frontend" {
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
 
-  stickiness {
-    type            = "lb_cookie"
-    cookie_duration = 86400
-    enabled         = true
-  }
-
-  # Enable compression
-  load_balancing_algorithm_type = "least_outstanding_requests"
-  
   health_check {
     path                = "/health"  # Update to use the nginx health endpoint
     healthy_threshold   = 2
@@ -233,10 +224,6 @@ resource "aws_lb_target_group" "frontend" {
     timeout             = 5
     interval           = 30
     matcher            = "200"
-  }
-
-  tags = {
-    Name = "${var.project_name}-frontend-tg"
   }
 
   depends_on = [
@@ -332,8 +319,8 @@ resource "aws_ecs_task_definition" "app" {
   family                   = "${var.project_name}-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 4096
-  memory                   = 8192
+  cpu                      = 2048
+  memory                   = 4096
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
   task_role_arn           = aws_iam_role.ecs_task_role.arn
 
@@ -427,9 +414,9 @@ resource "aws_route53_record" "main" {
   type    = "A"
 
   alias {
-    name                   = aws_cloudfront_distribution.main.domain_name
-    zone_id               = aws_cloudfront_distribution.main.hosted_zone_id
-    evaluate_target_health = false
+    name                   = aws_lb.main.dns_name
+    zone_id               = aws_lb.main.zone_id
+    evaluate_target_health = true
   }
 }
 
@@ -440,9 +427,9 @@ resource "aws_route53_record" "www" {
   type    = "A"
 
   alias {
-    name                   = aws_cloudfront_distribution.main.domain_name
-    zone_id               = aws_cloudfront_distribution.main.hosted_zone_id
-    evaluate_target_health = false
+    name                   = aws_lb.main.dns_name
+    zone_id               = aws_lb.main.zone_id
+    evaluate_target_health = true
   }
 }
 
@@ -533,132 +520,4 @@ resource "aws_lb_listener_rule" "backend_https" {
       values = ["/api*"]
     }
   }
-}
-
-resource "aws_cloudfront_distribution" "main" {
-  enabled             = true
-  is_ipv6_enabled    = true
-  default_root_object = "index.html"
-  aliases = [
-    "paperverse.co",
-    "www.paperverse.co"
-  ]
-  price_class        = "PriceClass_100"  # Use only North America and Europe edge locations
-
-  origin {
-    domain_name = aws_lb.main.dns_name
-    origin_id   = "alb"
-
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
-    }
-  }
-
-  # Cache behavior for API calls
-  ordered_cache_behavior {
-    path_pattern     = "/api/*"
-    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "alb"
-
-    forwarded_values {
-      query_string = true
-      headers      = ["Authorization", "Origin", "Accept", "Accept-Encoding"]
-
-      cookies {
-        forward = "all"
-      }
-    }
-
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 0
-    max_ttl                = 0
-    compress               = true
-  }
-
-  # Default cache behavior for static content
-  default_cache_behavior {
-    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "alb"
-
-    forwarded_values {
-      query_string = false
-      headers      = ["Origin"]
-
-      cookies {
-        forward = "none"
-      }
-    }
-
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 3600    # 1 hour
-    max_ttl                = 86400   # 24 hours
-    compress               = true
-
-    # Enable caching for common static file types
-    function_association {
-      event_type   = "viewer-response"
-      function_arn = aws_cloudfront_function.add_security_headers.arn
-    }
-  }
-
-  restrictions {
-    geo_restriction {
-      restriction_type = "none"
-    }
-  }
-
-  viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate.main.arn
-    ssl_support_method       = "sni-only"
-    minimum_protocol_version = "TLSv1.2_2021"
-  }
-
-  # Custom error responses
-  custom_error_response {
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 300
-  }
-
-  custom_error_response {
-    error_code            = 403
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 300
-  }
-}
-
-# CloudFront Function to add security headers
-resource "aws_cloudfront_function" "add_security_headers" {
-  name    = "${var.project_name}-security-headers"
-  runtime = "cloudfront-js-1.0"
-  code    = <<-EOT
-function handler(event) {
-    var response = event.response;
-    var headers = response.headers;
-
-    // Add security headers
-    headers['strict-transport-security'] = { value: 'max-age=31536000; includeSubdomains; preload'};
-    headers['x-content-type-options'] = { value: 'nosniff'};
-    headers['x-frame-options'] = { value: 'DENY'};
-    headers['x-xss-protection'] = { value: '1; mode=block'};
-    headers['referrer-policy'] = { value: 'strict-origin-when-cross-origin'};
-    
-    // Add caching headers for static content
-    var uri = event.request.uri;
-    if (uri.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
-        headers['cache-control'] = { value: 'public, max-age=31536000, immutable'};
-    }
-
-    return response;
-}
-EOT
 }

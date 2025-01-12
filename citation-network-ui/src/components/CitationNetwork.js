@@ -13,8 +13,11 @@ import {
 } from '@mui/material';
 import axios from '../axiosInstance';
 import Graph from './Graph';
-import { Autocomplete } from '@mui/material';
+import { Autocomplete, Alert } from '@mui/material';
 import debounce from 'lodash/debounce';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useAnonymous } from '../contexts/AnonymousContext';
 
 function CitationNetwork() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +31,9 @@ function CitationNetwork() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [treeGenerationCount, setTreeGenerationCount] = useState(0);
+  const { incrementGraphCount, graphCount, shouldPromptLogin } = useAnonymous();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
 
   const getHintText = (step) => {
     if (treeGenerationCount >= 5) return null;
@@ -121,6 +127,11 @@ function CitationNetwork() {
   };
 
   const handleGenerateTree = () => {
+    if (!currentUser && graphCount >= 3) {
+      navigate('/login', { state: { exceeded: true } });
+      return;
+    }
+
     setLoading(true);
     axios
       .post('/generate_tree/', {
@@ -128,6 +139,9 @@ function CitationNetwork() {
         depth: parseInt(depth),
       })
       .then((response) => {
+        if (!currentUser) {
+          incrementGraphCount();
+        }
         if (response.data.message === 'Tree already exists') {
           loadRootNode();
         } else {
@@ -157,6 +171,17 @@ function CitationNetwork() {
       });
   };
 
+  const renderLimitWarning = () => {
+    if (!currentUser && graphCount === 2) {
+      return (
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          You have 1 free visualization remaining. Create an account to get unlimited access!
+        </Alert>
+      );
+    }
+    return null;
+  };
+
   const [open, setOpen] = useState(false);
 
   return (
@@ -165,6 +190,7 @@ function CitationNetwork() {
       mx: 'auto',
       p: 1,
     }}>
+      {renderLimitWarning()}
       <Box sx={{
         maxWidth: '800px',
         mx: 'auto'

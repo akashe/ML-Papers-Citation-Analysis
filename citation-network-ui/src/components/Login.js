@@ -6,6 +6,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import ExplainerComponent from './Introduction';
 import LoginForm from './LoginForm';
+import { useAnonymous } from '../contexts/AnonymousContext';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -14,6 +15,10 @@ function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const message = location.state?.message || '';
+  const exceeded = location.state?.exceeded;
+  const { graphCount } = useAnonymous();
+
+  const showLoginForm = exceeded || graphCount >= 3;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -201,6 +206,7 @@ function Login() {
           width: '100%' // Ensure full width on mobile
         }}
       >
+        {showLoginForm ? (
         <Box 
           component="form"
           onSubmit={handleLogin}
@@ -313,6 +319,49 @@ function Login() {
             </MuiLink>
           </Typography>
         </Box>
+        ) : (
+          <Box
+            sx={{ 
+              width: '100%',
+              maxWidth: { xs: '100%', sm: 300 },
+              p: { xs: 2, md: 4 },
+              textAlign: 'center'
+            }}
+          >
+            <Typography 
+              variant="h5" 
+              gutterBottom
+              sx={{
+                fontFamily: '"Open Sans", sans-serif',
+                fontSize: "25px",
+                fontWeight: "500",
+                color: "rgb(77, 47, 47)",
+                mb: 3
+              }}
+            >
+              Ready to dive in?
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              component={Link}
+              to="/"
+              state={{ fromExploreButton: true }} 
+              sx={{ 
+                py: 1.5,
+                px: 4,
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontSize: '16px',
+                fontWeight: '500',
+                boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              Let's Start Exploring
+            </Button>
+          </Box>
+        )}
       </Grid>
     </Grid>
   );
