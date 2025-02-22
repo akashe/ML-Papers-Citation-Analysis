@@ -72,6 +72,23 @@ jobs:
         # Test ECR login
         echo "Testing ECR login..."
         aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+        # Pull and restart containers
+        cd /home/ec2-user
+        echo "Pulling latest images..."
+        sudo docker-compose pull
+        
+        echo "Stopping existing containers..."
+        sudo docker-compose down || true
+        
+        echo "Starting containers..."
+        sudo docker-compose up -d
+        
+        echo "Checking container status..."
+        sudo docker-compose ps
+        
+        echo "Container logs..."
+        sudo docker-compose logs
         
         echo "Deployment script completed successfully"
         EOF
@@ -87,12 +104,22 @@ jobs:
       env:
         EC2_HOST: ${{ secrets.EC2_HOST }}
       run: |
-        # Wait for services to be up
-        sleep 30
+        echo "Waiting for services to start..."
+        sleep 60  # Increased wait time
         
-        # Check if services are responding
-        curl -f http://$EC2_HOST:80 || exit 1
-        curl -f http://$EC2_HOST:8000/health || exit 1
+        echo "Checking frontend (port 80)..."
+        curl -v http://$EC2_HOST:80 || {
+          echo "Frontend check failed. Checking docker logs..."
+          ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'sudo docker ps -a && sudo docker logs $(sudo docker ps -q --filter name=frontend)'
+          exit 1
+        }
+        
+        echo "Checking backend (port 8000)..."
+        curl -v http://$EC2_HOST:8000/health || {
+          echo "Backend check failed. Checking docker logs..."
+          ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'sudo docker ps -a && sudo docker logs $(sudo docker ps -q --filter name=backend)'
+          exit 1
+        }
 
     - name: Cleanup
       if: always()
