@@ -228,8 +228,8 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 
 # EC2 Instance
 resource "aws_instance" "app" {
-  ami           = "ami-0f37c4a1ba152af46"  # Amazon Linux 2023 ARM64
-  instance_type = "t4g.small"              # ARM-based instance
+  ami           = "ami-05b10e08d247fb927"  # Amazon Linux 2023 
+  instance_type = "t2.small"              # ARM-based instance
   subnet_id     = aws_subnet.public.id
 
   key_name = aws_key_pair.deployer.key_name

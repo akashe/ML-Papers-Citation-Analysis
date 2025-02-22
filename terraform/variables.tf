@@ -43,7 +43,7 @@ variable "instance_type" {
 variable "instance_ami" {
   description = "AMI ID for EC2 instance"
   type        = string
-  default     = "ami-0f37c4a1ba152af46"  # Amazon Linux 2023 ARM64
+  default     = "ami-05b10e08d247fb927"  # Amazon Linux 2023 ARM64
 }
 
 variable "root_volume_size" {
