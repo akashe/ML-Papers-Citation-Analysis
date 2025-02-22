@@ -236,68 +236,44 @@ resource "aws_instance" "app" {
   }
 
   user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              yum install -y docker nginx certbot python3-certbot-nginx
-              systemctl start docker
-              systemctl enable docker
-              
-              # Install docker-compose
-              curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-              chmod +x /usr/local/bin/docker-compose
-              
-              # AWS CLI for ECR login
-              yum install -y aws-cli
-              
-              # Configure Nginx
-              cat > /etc/nginx/conf.d/default.conf <<'NGINX'
-              server {
-                  listen 80;
-                  server_name paperverse.co www.paperverse.co;
-
-                  location / {
-                      proxy_pass http://localhost:80;
-                      proxy_set_header Host $host;
-                      proxy_set_header X-Real-IP $remote_addr;
-                  }
-
-                  location /api {
-                      proxy_pass http://localhost:8000;
-                      proxy_set_header Host $host;
-                      proxy_set_header X-Real-IP $remote_addr;
-                  }
-              }
-              NGINX
-
-              systemctl start nginx
-              systemctl enable nginx
-              
-              # Create docker-compose.yml
-              cat <<'EOT' > /home/ec2-user/docker-compose.yml
-              version: '3'
-              services:
-                frontend:
-                  image: ${aws_ecr_repository.frontend.repository_url}:latest
-                  ports:
-                    - "80:80"
-                  restart: always
-                
-                backend:
-                  image: ${aws_ecr_repository.backend.repository_url}:latest
-                  ports:
-                    - "8000:8000"
-                  restart: always
-                  volumes:
-                    - ./data:/app/data
-              EOT
-              
-              # Login to ECR and start containers
-              aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.frontend.repository_url}
-              docker-compose -f /home/ec2-user/docker-compose.yml up -d
-              
-              # Get SSL certificate
-              certbot --nginx -d paperverse.co -d www.paperverse.co --non-interactive --agree-tos -m your-email@example.com
-              EOF
+          #!/bin/bash
+          yum update -y
+          yum install -y docker
+          systemctl start docker
+          systemctl enable docker
+          
+          # Add ec2-user to docker group
+          usermod -aG docker ec2-user
+          
+          # Install docker-compose
+          curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+          
+          # AWS CLI for ECR login
+          yum install -y aws-cli
+          
+          # Create docker-compose.yml
+          cat <<'EOT' > /home/ec2-user/docker-compose.yml
+          version: '3'
+          services:
+            frontend:
+              image: ${aws_ecr_repository.frontend.repository_url}:latest
+              ports:
+                - "80:80"
+              restart: always
+            
+            backend:
+              image: ${aws_ecr_repository.backend.repository_url}:latest
+              ports:
+                - "8000:8000"
+              restart: always
+              volumes:
+                - ./data:/app/data
+          EOT
+          
+          # Set correct permissions
+          chown -R ec2-user:ec2-user /home/ec2-user
+          EOF
 
   tags = {
     Name = "${var.project_name}-instance"

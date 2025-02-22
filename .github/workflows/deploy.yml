@@ -80,31 +80,36 @@ jobs:
         export AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY }}'
         export AWS_DEFAULT_REGION='${AWS_REGION}'
         
-        # Login to ECR
-        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-        
-        # Pull latest images
-        cd /home/ec2-user
-        docker-compose pull
-        
-        # Backup the database if it exists
-        if [ -f data/citation_network.db ]; then
-          cp data/citation_network.db data/citation_network.db.backup
-        fi
-        
-        # Restart containers
-        docker-compose down || true
-        docker-compose up -d
-        
-        # Clean up old images and backups
-        docker image prune -f
-        find data -name "citation_network.db.backup" -mtime +7 -delete
+        # Ensure docker is running and ec2-user has permissions
+        sudo systemctl start docker
+        sudo usermod -aG docker ec2-user
+        # Force the new group to take effect
+        exec sg docker -c '
+          # Login to ECR
+          aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+          
+          # Pull latest images
+          cd /home/ec2-user
+          docker-compose pull
+          
+          # Backup the database if it exists
+          if [ -f data/citation_network.db ]; then
+            cp data/citation_network.db data/citation_network.db.backup
+          fi
+          
+          # Restart containers
+          docker-compose down || true
+          docker-compose up -d
+          
+          # Clean up old images and backups
+          docker image prune -f
+          find data -name "citation_network.db.backup" -mtime +7 -delete
+        '
         EOF
         
         # Copy and execute deploy script
         scp -i ~/.ssh/deploy_key deploy.sh ec2-user@$EC2_HOST:/home/ec2-user/
         ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'chmod +x /home/ec2-user/deploy.sh && /home/ec2-user/deploy.sh'
-
     - name: Verify Deployment
       env:
         EC2_HOST: ${{ secrets.EC2_HOST }}
