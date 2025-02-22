@@ -204,7 +204,8 @@ resource "aws_iam_role_policy" "ecr_policy" {
           "ecr:GetAuthorizationToken",
           "ecr:BatchCheckLayerAvailability",
           "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage"
+          "ecr:BatchGetImage",
+          "ecr:ListImages"
         ]
         Resource = "*"
       }

@@ -60,6 +60,7 @@ jobs:
         PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         EC2_HOST: ${{ secrets.EC2_HOST }}
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        AWS_REGION: ${{ env.AWS_REGION }}
       run: |
         # Write the SSH key to a file
         mkdir -p ~/.ssh
@@ -69,13 +70,18 @@ jobs:
         # Add host key verification
         ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
         
-        # Create remote script
-        cat << 'EOF' > deploy.sh
+        # Create remote script with environment variables
+        cat << EOF > deploy.sh
         #!/bin/bash
         set -e
         
+        # Export AWS credentials for ECR login
+        export AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}'
+        export AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY }}'
+        export AWS_DEFAULT_REGION='${AWS_REGION}'
+        
         # Login to ECR
-        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
         
         # Pull latest images
         cd /home/ec2-user
