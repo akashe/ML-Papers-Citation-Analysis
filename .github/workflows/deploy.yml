@@ -8,18 +8,16 @@ env:
   AWS_REGION: us-east-1
   ECR_FRONTEND_REPOSITORY: citation-network-frontend
   ECR_BACKEND_REPOSITORY: citation-network-backend
-  ECS_CLUSTER: citation-network-cluster
-  ECS_SERVICE: citation-network-service
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3  # Updated to v3
     
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v2  # Updated to v2
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -32,6 +30,7 @@ jobs:
     - name: Build and push Docker images
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
       run: |
         # Build and push frontend
         docker build \
@@ -42,20 +41,75 @@ jobs:
           --build-arg REACT_APP_FIREBASE_MESSAGING_SENDER_ID="${{ secrets.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}" \
           --build-arg REACT_APP_FIREBASE_APP_ID="${{ secrets.REACT_APP_FIREBASE_APP_ID }}" \
           --build-arg REACT_APP_FIREBASE_MEASUREMENT_ID="${{ secrets.REACT_APP_FIREBASE_MEASUREMENT_ID }}" \
-          -t $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$GITHUB_SHA \
+          -t $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$IMAGE_TAG \
           -t $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:latest \
           -f docker/frontend.Dockerfile .
-        docker push $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$GITHUB_SHA
+        docker push $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_FRONTEND_REPOSITORY:latest
         
         # Build and push backend
         docker build \
-          -t $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$GITHUB_SHA \
+          -t $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG \
           -t $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:latest \
           -f docker/backend.Dockerfile .
-        docker push $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$GITHUB_SHA
+        docker push $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_BACKEND_REPOSITORY:latest
-    
-    - name: Update ECS service
+
+    - name: Deploy to EC2
+      env:
+        PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
       run: |
-        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
+        # Write the SSH key to a file
+        mkdir -p ~/.ssh
+        echo "$PRIVATE_KEY" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        
+        # Add host key verification
+        ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+        
+        # Create remote script
+        cat << 'EOF' > deploy.sh
+        #!/bin/bash
+        set -e
+        
+        # Login to ECR
+        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
+        
+        # Pull latest images
+        cd /home/ec2-user
+        docker-compose pull
+        
+        # Backup the database if it exists
+        if [ -f data/citation_network.db ]; then
+          cp data/citation_network.db data/citation_network.db.backup
+        fi
+        
+        # Restart containers
+        docker-compose down || true
+        docker-compose up -d
+        
+        # Clean up old images and backups
+        docker image prune -f
+        find data -name "citation_network.db.backup" -mtime +7 -delete
+        EOF
+        
+        # Copy and execute deploy script
+        scp -i ~/.ssh/deploy_key deploy.sh ec2-user@$EC2_HOST:/home/ec2-user/
+        ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'chmod +x /home/ec2-user/deploy.sh && /home/ec2-user/deploy.sh'
+
+    - name: Verify Deployment
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+      run: |
+        # Wait for services to be up
+        sleep 30
+        
+        # Check if services are responding
+        curl -f http://$EC2_HOST:80 || exit 1
+        curl -f http://$EC2_HOST:8000/health || exit 1
+
+    - name: Cleanup
+      if: always()
+      run: rm -f ~/.ssh/deploy_key
