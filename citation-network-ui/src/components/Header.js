@@ -10,7 +10,7 @@ import {
   useMediaQuery,
   useTheme
 } from '@mui/material';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useAuth } from '../contexts/AuthContext';
 import { signOut } from 'firebase/auth';
@@ -20,6 +20,7 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 function Header() {
   const { currentUser } = useAuth();
   const location = useLocation(); // Hook to get current path
+  const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [anchorEl, setAnchorEl] = useState(null);
@@ -35,6 +36,7 @@ function Header() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
+      navigate('/login'); // Add this line to redirect to login after logout
     } catch (error) {
       console.error('Error logging out:', error);
     }

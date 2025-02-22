@@ -172,12 +172,20 @@ function CitationNetwork() {
   };
 
   const renderLimitWarning = () => {
-    if (!currentUser && graphCount === 2) {
-      return (
-        <Alert severity="warning" sx={{ mt: 2 }}>
-          You have 1 free visualization remaining. Create an account to get unlimited access!
-        </Alert>
-      );
+    if (!currentUser) {
+      if (graphCount === 2) {
+        return (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            You have 1 free visualization remaining. Create an account to get unlimited access!
+          </Alert>
+        );
+      } else if (graphCount >= 3) {
+        return (
+          <Alert severity="warning" sx={{ mt: 2 }}>
+            You have no free visualizations remaining. Please create an account to continue!
+          </Alert>
+        );
+      }
     }
     return null;
   };
