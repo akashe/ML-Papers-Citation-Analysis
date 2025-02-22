@@ -1,4 +1,4 @@
-# 🎯 Citation Analysis & Bibliometrics Explorer
+# 🎯 Paperverse.co
 ![Deploy status](https://github.com/akashe/ML-Papers-Citation-Analysis/actions/workflows/deploy.yml/badge.svg)
 
 
