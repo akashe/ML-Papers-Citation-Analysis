@@ -269,8 +269,19 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
           });
       });
 
-      cy.on('mouseout', 'node', () => {
-        // Immediately close and reset tooltip state
+      cy.on('mouseout', 'node', (evt) => {
+        // Don't close the tooltip if the mouse is over the Popover
+        const popoverElement = document.querySelector('.MuiPopover-root');
+        if (popoverElement) {
+          const popoverRect = popoverElement.getBoundingClientRect();
+          if (evt.originalEvent.clientX >= popoverRect.left &&
+              evt.originalEvent.clientX <= popoverRect.right &&
+              evt.originalEvent.clientY >= popoverRect.top &&
+              evt.originalEvent.clientY <= popoverRect.bottom) {
+            return;
+          }
+        }
+        
         setTooltip({
           open: false,
           anchorPosition: null,
@@ -381,7 +392,6 @@ function Graph({ rootNode, depth, numPapers, selectionCriteria }) {
         }}
         disableRestoreFocus
         transitionDuration={0}  // Add this line
-        style={{ pointerEvents: 'none' }}  // Add this line
       >
         {tooltip.data && (
           <Card className={classes.tooltipCard}>

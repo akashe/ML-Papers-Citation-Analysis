@@ -246,7 +246,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 # EC2 Instance
 resource "aws_instance" "app" {
   ami           = "ami-05b10e08d247fb927"  # Amazon Linux 2023 
-  instance_type = "t3.medium"              # ARM-based instance
+  instance_type = "t3.xlarge"              # ARM-based instance
   subnet_id     = aws_subnet.public.id
 
   key_name = aws_key_pair.deployer.key_name
@@ -255,9 +255,10 @@ resource "aws_instance" "app" {
   vpc_security_group_ids = [aws_security_group.ec2.id]
   
   root_block_device {
-    volume_size = 30
+    volume_size = 50  # Increased size for better I/O
     volume_type = "gp3"
-    iops        = 3000  # Add this for better I/O performance
+    iops        = 7000  # Increased IOPS
+    throughput  = 250   # Added throughput
   }
 
   user_data = <<-EOF
@@ -284,6 +285,12 @@ resource "aws_instance" "app" {
           
           # AWS CLI for ECR login
           yum install -y aws-cli
+
+          # Optimize system for database workload
+          echo 'vm.swappiness=10' >> /etc/sysctl.conf
+          echo 'vm.dirty_ratio=60' >> /etc/sysctl.conf
+          echo 'vm.dirty_background_ratio=2' >> /etc/sysctl.conf
+          sysctl -p
           
           # Create docker-compose.yml
           cat <<'EOT' > /home/ec2-user/docker-compose.yml
@@ -306,7 +313,18 @@ resource "aws_instance" "app" {
               ports:
                 - "8000:8000"
               restart: always
-              mem_limit: 2g
+              mem_limit: 6g
+              mem_reservation: 4g  # Added memory reservation
+              cpus: 2.0  # Limit CPU usage
+              environment:
+                - PYTHONUNBUFFERED=1
+                - PYTHONASYNCIODEBUG=0
+              volumes:
+                - /tmp/citations_data:/app/data  # Mount database to host filesystem
+              ulimits:
+                nofile:
+                  soft: 65536
+                  hard: 65536
               networks:
                 - app_network
 
