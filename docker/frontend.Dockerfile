@@ -37,5 +37,11 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=builder /app/build /usr/share/nginx/html
 COPY nginx/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Create log directory
+RUN mkdir -p /var/log/nginx
+RUN touch /var/log/nginx/error.log /var/log/nginx/access.log \
+    /var/log/nginx/api_error.log /var/log/nginx/api_access.log
+    
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
