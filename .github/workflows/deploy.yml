@@ -135,17 +135,27 @@ jobs:
         echo "Waiting for services to start..."
         sleep 60  # Increased wait time
         
+        # Check if containers are running
+        ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'sudo docker ps'
+        
+        # Check backend logs
+        ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'sudo docker logs $(sudo docker ps -q --filter name=backend)'
+        
+        # Check nginx logs
+        ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'sudo docker logs $(sudo docker ps -q --filter name=frontend)'
+        
+        # Check if backend is accessible locally on EC2
+        ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'curl -v http://localhost:8000/health'
+        
         echo "Checking frontend (through Cloudflare)..."
         curl -v --retry 3 --retry-delay 10 https://paperverse.co || {
-          echo "Frontend check failed. Checking docker logs..."
-          ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'sudo docker ps -a && sudo docker logs $(sudo docker ps -q --filter name=frontend)'
+          echo "Frontend check failed"
           exit 1
         }
         
         echo "Checking backend health..."
         curl -v --retry 3 --retry-delay 10 https://paperverse.co/api/health || {
-          echo "Backend check failed. Checking docker logs..."
-          ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'sudo docker ps -a && sudo docker logs $(sudo docker ps -q --filter name=backend)'
+          echo "Backend check failed"
           exit 1
         }
 

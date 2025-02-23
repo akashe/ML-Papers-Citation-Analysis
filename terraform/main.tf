@@ -290,17 +290,29 @@ resource "aws_instance" "app" {
           version: '3'
           services:
             frontend:
+              container_name: frontend  # Added explicit container name
               image: ${aws_ecr_repository.frontend.repository_url}:latest
               ports:
                 - "80:80"
               restart: always
-            
+              networks:
+                - app_network
+              depends_on:  # Added dependency
+                - backend
+              
             backend:
+              container_name: backend  # Added explicit container name
               image: ${aws_ecr_repository.backend.repository_url}:latest
               ports:
                 - "8000:8000"
               restart: always
               mem_limit: 2g
+              networks:
+                - app_network
+
+          networks:
+            app_network:
+              driver: bridge
           EOT
           
           # Set correct permissions
