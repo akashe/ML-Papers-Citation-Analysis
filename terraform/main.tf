@@ -301,8 +301,6 @@ resource "aws_instance" "app" {
                 - "8000:8000"
               restart: always
               mem_limit: 2g
-              volumes:
-                - ./data:/app/data
           EOT
           
           # Set correct permissions
