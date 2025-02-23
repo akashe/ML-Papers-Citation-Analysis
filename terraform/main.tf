@@ -316,15 +316,6 @@ resource "aws_instance" "app" {
               mem_limit: 6g
               mem_reservation: 4g  # Added memory reservation
               cpus: 2.0  # Limit CPU usage
-              environment:
-                - PYTHONUNBUFFERED=1
-                - PYTHONASYNCIODEBUG=0
-              volumes:
-                - /tmp/citations_data:/app/data  # Mount database to host filesystem
-              ulimits:
-                nofile:
-                  soft: 65536
-                  hard: 65536
               networks:
                 - app_network
 
