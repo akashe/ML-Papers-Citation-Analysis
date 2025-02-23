@@ -19,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.mount("/templates", StaticFiles(directory="templates"), name="templates")
 
 DATABASE = 'data/citations_data.db'
