@@ -20,11 +20,7 @@ COPY citation-network-backend/ .
 
 # Create necessary directories
 RUN mkdir -p data/bfs_trees data/pngs && \
-    curl -o data/citations_data.db https://gifs-and-vids.s3.amazonaws.com/citations_data.db && \
-    # Verify database structure
-    echo ".tables" | sqlite3 data/citations_data.db && \
-    echo "SELECT sql FROM sqlite_master WHERE type='table';" | sqlite3 data/citations_data.db
-
+    curl -o data/citations_data.db https://gifs-and-vids.s3.amazonaws.com/citations_data.db 
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

@@ -60,34 +60,24 @@ async def search_papers(request: PaperSearchRequest):
     try:
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
-        
-        # First verify if table exists
-        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Nodes'")
-        if not c.fetchone():
-            raise HTTPException(
-                status_code=500,
-                detail="Database schema not found. Table 'Nodes' is missing."
-            )
-            
+
+        # Add index if it doesn't exist (do this during initialization)
+        c.execute("""
+                CREATE INDEX IF NOT EXISTS idx_nodes_label 
+                ON Nodes(label, pageRank DESC);
+            """)
+        conn.commit()
+
         c.execute("""
                 SELECT id, label, year, citationCount, pageRank 
                 FROM Nodes 
                 WHERE label LIKE ? 
                 ORDER BY pageRank DESC
+                LIMIT 10
                 """, (f"%{request.query}%",))
         papers = c.fetchall()
         conn.close()
         return [{"id": paper[0], "label": paper[1].replace(r"\n", "")} for paper in papers]
-    except sqlite3.OperationalError as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database error: {str(e)}"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Unexpected error: {str(e)}"
-        )
     finally:
         if 'conn' in locals():
             conn.close()

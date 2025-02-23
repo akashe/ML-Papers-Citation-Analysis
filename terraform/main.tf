@@ -246,7 +246,7 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 # EC2 Instance
 resource "aws_instance" "app" {
   ami           = "ami-05b10e08d247fb927"  # Amazon Linux 2023 
-  instance_type = "t2.small"              # ARM-based instance
+  instance_type = "t3.medium"              # ARM-based instance
   subnet_id     = aws_subnet.public.id
 
   key_name = aws_key_pair.deployer.key_name
@@ -257,11 +257,20 @@ resource "aws_instance" "app" {
   root_block_device {
     volume_size = 30
     volume_type = "gp3"
+    iops        = 3000  # Add this for better I/O performance
   }
 
   user_data = <<-EOF
           #!/bin/bash
           yum update -y
+
+          # Add swap space
+          dd if=/dev/zero of=/swapfile bs=1M count=4096
+          chmod 600 /swapfile
+          mkswap /swapfile
+          swapon /swapfile
+          echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+
           yum install -y docker
           systemctl start docker
           systemctl enable docker
@@ -291,6 +300,7 @@ resource "aws_instance" "app" {
               ports:
                 - "8000:8000"
               restart: always
+              mem_limit: 2g
               volumes:
                 - ./data:/app/data
           EOT
