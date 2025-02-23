@@ -135,15 +135,15 @@ jobs:
         echo "Waiting for services to start..."
         sleep 60  # Increased wait time
         
-        echo "Checking frontend (port 80)..."
-        curl -v http://$EC2_HOST:80 || {
+        echo "Checking frontend (through Cloudflare)..."
+        curl -v --retry 3 --retry-delay 10 https://paperverse.co || {
           echo "Frontend check failed. Checking docker logs..."
           ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'sudo docker ps -a && sudo docker logs $(sudo docker ps -q --filter name=frontend)'
           exit 1
         }
         
-        echo "Checking backend (port 8000)..."
-        curl -v http://$EC2_HOST:8000/health || {
+        echo "Checking backend health..."
+        curl -v --retry 3 --retry-delay 10 https://paperverse.co/api/health || {
           echo "Backend check failed. Checking docker logs..."
           ssh -i ~/.ssh/deploy_key ec2-user@$EC2_HOST 'sudo docker ps -a && sudo docker logs $(sudo docker ps -q --filter name=backend)'
           exit 1
