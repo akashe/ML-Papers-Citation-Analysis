@@ -61,23 +61,39 @@ async def search_papers(request: PaperSearchRequest):
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
 
-        # Add index if it doesn't exist (do this during initialization)
+        # Verify database and table exist
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Nodes'")
+        if not c.fetchone():
+            raise HTTPException(
+                status_code=500,
+                detail="Database table 'Nodes' not found. Database may be corrupted or not properly initialized."
+            )
+
+        # Add index if it doesn't exist
         c.execute("""
-                CREATE INDEX IF NOT EXISTS idx_nodes_label 
-                ON Nodes(label, pageRank DESC);
-            """)
+            CREATE INDEX IF NOT EXISTS idx_nodes_label 
+            ON Nodes(label, pageRank DESC);
+        """)
         conn.commit()
 
         c.execute("""
-                SELECT id, label, year, citationCount, pageRank 
-                FROM Nodes 
-                WHERE label LIKE ? 
-                ORDER BY pageRank DESC
-                LIMIT 10
-                """, (f"%{request.query}%",))
+            SELECT id, label, year, citationCount, pageRank 
+            FROM Nodes 
+            WHERE label LIKE ? 
+            ORDER BY pageRank DESC
+            LIMIT 10
+        """, (f"%{request.query}%",))
         papers = c.fetchall()
-        conn.close()
+        
+        if not papers:
+            return []
+            
         return [{"id": paper[0], "label": paper[1].replace(r"\n", "")} for paper in papers]
+    except sqlite3.OperationalError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}. Please verify database file exists and has proper permissions."
+        )
     finally:
         if 'conn' in locals():
             conn.close()
