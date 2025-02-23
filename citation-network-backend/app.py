@@ -57,17 +57,40 @@ async def get_path_finder():
 
 @app.post("/search_papers/")
 async def search_papers(request: PaperSearchRequest):
-    conn = sqlite3.connect(DATABASE)
-    c = conn.cursor()
-    c.execute("""
-            SELECT id, label, year, citationCount, pageRank 
-            FROM Nodes 
-            WHERE label LIKE ? 
-            ORDER BY pageRank DESC
-            """, (f"%{request.query}%",))
-    papers = c.fetchall()
-    conn.close()
-    return [{"id": paper[0], "label": paper[1].replace(r"\n", "")} for paper in papers]
+    try:
+        conn = sqlite3.connect(DATABASE)
+        c = conn.cursor()
+        
+        # First verify if table exists
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Nodes'")
+        if not c.fetchone():
+            raise HTTPException(
+                status_code=500,
+                detail="Database schema not found. Table 'Nodes' is missing."
+            )
+            
+        c.execute("""
+                SELECT id, label, year, citationCount, pageRank 
+                FROM Nodes 
+                WHERE label LIKE ? 
+                ORDER BY pageRank DESC
+                """, (f"%{request.query}%",))
+        papers = c.fetchall()
+        conn.close()
+        return [{"id": paper[0], "label": paper[1].replace(r"\n", "")} for paper in papers]
+    except sqlite3.OperationalError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}"
+        )
+    finally:
+        if 'conn' in locals():
+            conn.close()
 
 
 @app.post("/generate_tree/")
