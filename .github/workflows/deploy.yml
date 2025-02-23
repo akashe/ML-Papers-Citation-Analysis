@@ -117,10 +117,6 @@ jobs:
         
         echo "Container logs..."
         sudo docker-compose logs
-
-        echo "Verifying database..."
-        sudo docker exec \$(sudo docker ps -q --filter name=backend) sqlite3 /app/data/citations_data.db ".tables"
-        sudo docker exec \$(sudo docker ps -q --filter name=backend) sqlite3 /app/data/citations_data.db "SELECT COUNT(*) FROM Nodes;"
         
         echo "Deployment script completed successfully"
         EOF
